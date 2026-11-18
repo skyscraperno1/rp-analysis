@@ -150,6 +150,7 @@ export function PropertiesPanel() {
           <div className="hint">点击画布中的方框进行查看和编辑</div>
           <div className="hint">左键拖框空白处 = 框选</div>
           <div className="hint">D = 画新框 · Del = 删除</div>
+          <div className="hint">列表：单击定位 · Shift 范围选 · Ctrl 多选</div>
         </div>
       )}
     </div>

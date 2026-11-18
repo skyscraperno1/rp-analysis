@@ -131,12 +131,6 @@ export function BoxList() {
         ))}
       </div>
 
-      <div className="boxlist-header">
-        <span className="h-idx">编号</span>
-        <span className="h-coord">左上角点位</span>
-        <span className="h-dim">宽高</span>
-      </div>
-
       <div className="boxlist-scroll" ref={hostRef}>
         <div className="boxlist-viewport" ref={viewportRef}>
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
@@ -157,7 +151,10 @@ export function BoxList() {
                   }}
                   onClick={(e) => onClickRow(e, vi.index)}
                   {...tipAttrs(
-                    `#${b.index ?? '–'} · 左上角 (${b.bbox[0].toFixed(0)}, ${b.bbox[1].toFixed(0)}) · 宽 ${(b.bbox[2] - b.bbox[0]).toFixed(0)} × 高 ${(b.bbox[3] - b.bbox[1]).toFixed(0)} px（原图坐标）· 单击定位，Shift 范围选，Ctrl 多选`,
+                    [
+                      b.index != null ? `#${b.index} · ` : '',
+                      `起始点 (${b.bbox[0].toFixed(0)}, ${b.bbox[1].toFixed(0)}) · 宽 ${(b.bbox[2] - b.bbox[0]).toFixed(0)} × 高 ${(b.bbox[3] - b.bbox[1]).toFixed(0)} px`,
+                    ].join(''),
                     'right',
                   )}
                 >

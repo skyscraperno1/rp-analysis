@@ -289,33 +289,6 @@ body {
   font-size: 12px;
 }
 
-/* 列表列头（固定在滚动区上方，不随列表滚动） */
-.boxlist-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: var(--panel2);
-  border-bottom: 1px solid var(--border);
-  color: var(--dim);
-  font-size: 11px;
-  user-select: none;
-}
-
-.boxlist-header .h-idx {
-  width: 34px;
-  text-align: right;
-}
-
-.boxlist-header .h-coord {
-  flex: 1;
-}
-
-.boxlist-header .h-dim {
-  min-width: 52px;
-  text-align: right;
-}
-
 .boxlist-scroll {
   flex: 1;
   overflow-y: auto;
