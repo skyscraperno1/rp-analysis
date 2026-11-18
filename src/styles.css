@@ -1,0 +1,939 @@
+:root {
+  --bg: #16171b;
+  --panel: #1e1f24;
+  --panel2: #24252b;
+  --border: #33343c;
+  --text: #e6e7ea;
+  --dim: #8f9099;
+  --accent: #4f8cff;
+  --warn: #ffb300;
+  --danger: #ff4d4f;
+  --ok: #52c41a;
+  color-scheme: dark;
+  /* 覆盖 react-tooltip 库默认的 0.9 透明度 */
+  --rt-opacity: 1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  overflow: hidden;
+}
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 40px 1fr;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 264px 1fr 240px;
+  min-height: 0;
+}
+
+/* ---------- 工具栏 ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent);
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+.group {
+  display: flex;
+  gap: 4px;
+  padding-right: 10px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.group:last-of-type {
+  border-right: none;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.stat {
+  color: var(--dim);
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.btn {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* 顶部工具栏：纯图标小按钮（高度与缩放输入框一致） */
+.toolbar .btn {
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn.accent {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.btn.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* 缩放输入框：显示当前缩放，可输入百分比回车生效 */
+.zoom-input {
+  width: 58px;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+}
+
+.zoom-input:focus {
+  border-color: var(--accent);
+}
+
+.segmented {
+  display: inline-flex;
+}
+
+.segmented .btn {
+  border-radius: 0;
+}
+
+.segmented .btn:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.segmented .btn:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+/* ---------- 侧面板 ---------- */
+.panel {
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.boxlist {
+  border-right: 1px solid var(--border);
+}
+
+.props-panel {
+  border-left: 1px solid var(--border);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.panel-head .count {
+  color: var(--dim);
+  font-weight: 400;
+  cursor: default;
+}
+
+.panel-head-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--dim);
+  cursor: default;
+}
+
+.panel-head-icon:hover {
+  background: var(--panel2);
+  color: var(--text);
+}
+
+.panel-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* 列表筛选 tab：全部 / 原有 / 新增 */
+.list-filter {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dim);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.filter-tab:hover {
+  color: var(--text);
+}
+
+.filter-tab.active {
+  background: #3d3f47;
+  color: #ffffff;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.filter-tab em {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.filter-tab .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+}
+
+.filter-tab .dot.existing {
+  background: var(--ok);
+}
+
+.filter-tab .dot.manual {
+  background: #1677ff;
+}
+
+.list-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--dim);
+  font-size: 12px;
+}
+
+/* 列表列头（固定在滚动区上方，不随列表滚动） */
+.boxlist-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  color: var(--dim);
+  font-size: 11px;
+  user-select: none;
+}
+
+.boxlist-header .h-idx {
+  width: 34px;
+  text-align: right;
+}
+
+.boxlist-header .h-coord {
+  flex: 1;
+}
+
+.boxlist-header .h-dim {
+  min-width: 52px;
+  text-align: right;
+}
+
+.boxlist-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.boxrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+}
+
+.boxrow:hover {
+  background: var(--panel2);
+}
+
+.boxrow.manual {
+  border-left-color: #1677ff;
+}
+
+.boxrow.sel {
+  background: rgba(255, 179, 0, 0.12);
+  border-left-color: var(--warn);
+}
+
+.boxrow .idx {
+  width: 34px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.boxrow .coord {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.boxrow .dim {
+  min-width: 52px;
+  text-align: right;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+/* ---------- 画布 ---------- */
+.canvas-area {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 外层：纵向排列 画布区 + 状态栏 */
+.canvas-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 画布区：占满剩余空间，浮层（缩略图 / Dock / 提示）都相对它定位 */
+.canvas-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #0c0d10;
+  user-select: none;
+}
+
+.canvas-stage canvas {
+  display: block;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 13, 16, 0.82);
+  color: var(--text);
+  z-index: 5;
+}
+
+.overlay.hint {
+  background: none;
+  pointer-events: none;
+  color: var(--dim);
+  align-items: flex-end;
+  padding-bottom: 40px;
+}
+
+.overlay .dim {
+  color: var(--dim);
+  font-size: 12px;
+}
+
+.spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 缩略图 ---------- */
+.minimap {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px;
+  z-index: 4;
+}
+
+.minimap canvas {
+  display: block;
+  cursor: pointer;
+}
+
+/* ---------- 浮动工具栏（右下角，同一排，深色） ---------- */
+.tool-dock {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 5px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  z-index: 6;
+}
+
+/* 按键组（图1 语言）：较大方块，无底色，悬停时背景提亮 + 图标变亮 */
+.dock-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.dock-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.dock-action:hover:not(:disabled) {
+  background: var(--panel2);
+  color: var(--text);
+}
+
+.dock-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 工具 tab 组（图2 语言）：较小，内嵌深色容器 */
+.dock-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: #16171b;
+  border: none;
+  border-radius: 8px;
+}
+
+/* 每个 tab 分组（工具组 / 编号显示组）各自承载一个滑动指示器 */
+.dock-tab-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 滑动指示器：选中 tab 的物理凸起背景，在 tab 之间平滑滑动 */
+.dock-tab-ind {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 26px;
+  border-radius: 6px;
+  background: #3d3f47;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition:
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dock-tab {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+
+.dock-tab:hover {
+  color: var(--text);
+}
+
+/* 选中 tab：图标提亮（背景与凸起阴影由滑动指示器提供） */
+.dock-tab.active {
+  color: #ffffff;
+}
+
+/* tab 组内的竖线分隔 */
+.dock-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: #2c2d34;
+}
+
+/* ---------- 细圆角深色滚动条（WebKit + Firefox，用于属性面板/顶栏/弹窗） ---------- */
+.props,
+.toolbar,
+.modal {
+  scrollbar-width: thin;
+  scrollbar-color: #3d3f47 transparent;
+}
+
+.props::-webkit-scrollbar,
+.toolbar::-webkit-scrollbar,
+.modal::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.props::-webkit-scrollbar-thumb,
+.toolbar::-webkit-scrollbar-thumb,
+.modal::-webkit-scrollbar-thumb {
+  background: #3d3f47;
+  border-radius: 4px;
+}
+
+.props::-webkit-scrollbar-thumb:hover,
+.toolbar::-webkit-scrollbar-thumb:hover,
+.modal::-webkit-scrollbar-thumb:hover {
+  background: #4c4d56;
+}
+
+.props::-webkit-scrollbar-track,
+.toolbar::-webkit-scrollbar-track,
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- OverlayScrollbars 主题（点位列表 / 偏移量列表） ----------
+   注意：OS 的主题变量定义在 .os-theme-dark 类上（滚动条元素自带该类），
+   会遮蔽设在 host 上的同名变量，所以必须写到 .os-scrollbar 元素上（权重更高） */
+.boxlist-scroll .os-scrollbar,
+.offsets-scroll .os-scrollbar {
+  --os-size: 8px;
+  --os-handle-bg: #3d3f47;
+  --os-handle-bg-hover: #4c4d56;
+  --os-handle-border-radius: 4px;
+  --os-handle-perpendicular-size: 6px;
+  --os-track-bg: transparent;
+  --os-track-border-radius: 4px;
+}
+
+/* react-tooltip：去掉内层 content-wrapper 自带的 padding，避免和外层气泡双层 padding */
+.react-tooltip .react-tooltip-content-wrapper {
+  padding: 0;
+}
+
+/* React 持有的内层 div（OS 的 viewport），撑满 host */
+.boxlist-viewport,
+.offsets-scroll > div {
+  height: 100%;
+}
+
+/* ---------- 状态栏 ---------- */
+.statusbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  color: var(--dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusbar .sep {
+  opacity: 0.4;
+}
+
+/* ---------- 属性面板 ---------- */
+.props {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.props.empty {
+  color: var(--dim);
+  gap: 4px;
+  font-size: 11px;
+}
+
+.props.empty .hint {
+  font-size: 10px;
+}
+
+/* 属性面板：Figma 风格分区标签 + 轴输入框 */
+/* 属性面板：分区小标题（左上角 / 右下角） */
+.section-label {
+  color: var(--dim);
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.axis-row {
+  display: flex;
+  gap: 6px;
+}
+
+.axis-input {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.axis-input:focus-within {
+  border-color: var(--accent);
+}
+
+.axis-input .axis {
+  color: var(--dim);
+  font-size: 11px;
+  user-select: none;
+}
+
+.axis-input input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.kv span:first-child {
+  color: var(--dim);
+}
+
+.kv span:last-child {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.props-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hint {
+  color: var(--dim);
+  font-size: 11px;
+}
+
+/* ---------- 弹窗 ---------- */
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.modal {
+  width: 460px;
+  max-height: 86vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.modal .desc {
+  margin: 0;
+  color: var(--dim);
+  font-size: 12px;
+}
+
+.modal .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-label {
+  width: 56px;
+  color: var(--dim);
+}
+
+.modal input[type='range'] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.mono {
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+}
+
+.preview {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--dim);
+}
+
+.preview b {
+  color: var(--text);
+}
+
+/* 每行偏移量编辑器 */
+.offsets {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.offsets-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  color: var(--dim);
+  font-size: 12px;
+}
+
+.offsets-scroll {
+  max-height: 216px;
+  overflow-y: auto;
+}
+
+.offset-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+}
+
+.offset-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.offset-row.empty {
+  opacity: 0.45;
+}
+
+.offset-row .orno {
+  width: 28px;
+  text-align: right;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.offset-row input {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 3px 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.offset-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.offset-row .osize {
+  width: 44px;
+  text-align: right;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.btn.small {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.warn {
+  color: var(--warn);
+}
+
+/* ---------- 状态栏图例 ---------- */
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- 提示 ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 56px;
+  transform: translateX(-50%);
+  background: rgba(30, 31, 36, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  z-index: 30;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+.toast.error {
+  border-color: var(--danger);
+  color: #ffb9ba;
+  cursor: pointer;
+}
+
+.topline {
+  position: fixed;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--dim);
+  font-size: 11px;
+  z-index: 10;
+  pointer-events: none;
+}

@@ -1,0 +1,33 @@
+{
+  "name": "roller-stud-annotator",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "check:sort": "tsx scripts/check-sorting.ts",
+    "check:roundtrip": "tsx scripts/check-roundtrip.ts"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.14.26",
+    "konva": "^10.9.1",
+    "lucide-react": "^1.74.0",
+    "overlayscrollbars": "^2.17.1",
+    "overlayscrollbars-react": "^0.5.8",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-konva": "^19.3.2",
+    "react-tooltip": "^6.0.13",
+    "zustand": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8"
+  }
+}
