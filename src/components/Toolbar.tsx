@@ -56,6 +56,7 @@ function ZoomInput() {
 /** 顶部工具栏：纯图标按钮 + tooltip（悬停 250ms 显示在下方） */
 export function Toolbar() {
   const boxes = useStore((s) => s.boxes);
+  const image = useStore((s) => s.image);
   const selected = useStore((s) => s.selected);
   const vp = useStore((s) => s.vp);
   const past = useStore((s) => s.past);
@@ -71,15 +72,30 @@ export function Toolbar() {
 
   const zoom = (factor: number) => zoomAt(factor, vp.width / 2, vp.height / 2);
 
+  /* 当前还缺哪一步：没图 → 提示打开图片；有图没数据 → 提示导入 JSON。
+     对应按钮会呼吸式高亮，用户不用去猜左上角该点哪个 */
+  const needImage = !image;
+  const needData = !!image && boxes.length === 0;
+
   return (
     <div className="toolbar">
       <span className="brand">辊面铸钉编辑器</span>
 
       <div className="group">
-        <TipButton tip="打开图片" dir="bottom" className="btn" onClick={() => imgInput.current?.click()}>
+        <TipButton
+          tip="打开图片"
+          dir="bottom"
+          className={`btn${needImage ? ' attention' : ''}`}
+          onClick={() => imgInput.current?.click()}
+        >
           <ImageUp size={16} strokeWidth={1.8} />
         </TipButton>
-        <TipButton tip="导入 JSON" dir="bottom" className="btn" onClick={() => jsonInput.current?.click()}>
+        <TipButton
+          tip="导入 JSON"
+          dir="bottom"
+          className={`btn${needData ? ' attention' : ''}`}
+          onClick={() => jsonInput.current?.click()}
+        >
           <Upload size={16} strokeWidth={1.8} />
         </TipButton>
         <TipButton tip="导出 JSON（保留原始字段，按编号排序，文件名带时间戳）" dir="bottom" className="btn primary" onClick={exportJson}>
@@ -98,6 +114,7 @@ export function Toolbar() {
           }}
         />
         <input
+          id="json-input"
           ref={jsonInput}
           type="file"
           accept=".json,application/json"

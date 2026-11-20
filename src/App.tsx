@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
 import { useStore } from './store/useStore';
-import { parsePredJson } from './lib/jsonio';
-import { loadImageFromUrl } from './lib/loaders';
 import { Toolbar } from './components/Toolbar';
 import { AnnotationStage } from './components/AnnotationStage';
 import { BoxList } from './components/BoxList';
 import { PropertiesPanel } from './components/PropertiesPanel';
+import { HelpCard } from './components/HelpCard';
 import { SortDialog } from './components/SortDialog';
+import { RecomputeTracksDialog } from './components/RecomputeTracksDialog';
 import { AppTooltip } from './components/Tooltip';
+import { StartPrompt } from './components/StartPrompt';
 import { useKeyboard } from './hooks/useKeyboard';
 
 export default function App() {
@@ -15,30 +16,6 @@ export default function App() {
   const loading = useStore((s) => s.loading);
   const error = useStore((s) => s.error);
   const notice = useStore((s) => s.notice);
-
-  /* 启动时加载默认素材：public/predictions.json + public/roller.png */
-  useEffect(() => {
-    let canceled = false;
-    void (async () => {
-      const st = useStore.getState();
-      st.setLoading(true);
-      try {
-        const res = await fetch('predictions.json');
-        if (res.ok) {
-          const json = parsePredJson(await res.text());
-          if (!canceled) st.loadPrediction(json);
-        }
-        if (!canceled) await loadImageFromUrl('roller.png', 'stitched_rectified_cropped.png');
-      } catch (err) {
-        if (!canceled) st.setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        if (!canceled) st.setLoading(false);
-      }
-    })();
-    return () => {
-      canceled = true;
-    };
-  }, []);
 
   /* 提示自动消失 */
   useEffect(() => {
@@ -55,9 +32,16 @@ export default function App() {
         <div className="canvas-area">
           <AnnotationStage />
         </div>
-        <PropertiesPanel />
+        {/* 右栏：属性面板 + 右下角的使用说明入口。
+           说明卡片是绝对定位，展开时会往左溢出到画布上，层级高于其他浮层 */}
+        <div className="side-right">
+          <PropertiesPanel />
+          <HelpCard />
+        </div>
       </div>
       <SortDialog />
+      <RecomputeTracksDialog />
+      <StartPrompt />
       {notice && <div className="toast">{notice}</div>}
       {error && (
         <div className="toast error" onClick={() => useStore.getState().setError(null)}>

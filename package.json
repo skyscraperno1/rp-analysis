@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "check:sort": "tsx scripts/check-sorting.ts",
+    "check:tracks": "tsx scripts/check-tracks.ts",
+    "check:tracksort": "tsx scripts/check-tracksort.ts",
     "check:roundtrip": "tsx scripts/check-roundtrip.ts"
   },
   "dependencies": {

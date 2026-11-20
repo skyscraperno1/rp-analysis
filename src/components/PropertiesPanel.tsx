@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
 import type { Box } from '../types';
+import { trackColor } from '../lib/colors';
 
 /** Figma 风格的轴输入框：X/Y 前缀内嵌，整体是一个控件 */
 function AxisInput({
@@ -38,8 +39,42 @@ function AxisInput({
   );
 }
 
+/** 轨道号输入框：与 X/Y 轴输入同款（全宽、前缀内嵌），
+ *  前面的色块就是该轨道在画布上的颜色，改号即变色 */
+function TrackInput({
+  value,
+  onCommit,
+}: {
+  value: number;
+  onCommit: (v: number) => void;
+}) {
+  const [txt, setTxt] = useState(() => String(value));
+  useEffect(() => {
+    setTxt(String(value));
+  }, [value]);
+  const commit = () => {
+    const v = Number(txt);
+    if (Number.isFinite(v) && txt.trim() !== '' && v >= 0) onCommit(Math.floor(v));
+    else setTxt(String(value));
+  };
+  return (
+    <label className="axis-input track-input" title="轨道号（竖排的列号），回车生效">
+      <i className="swatch" style={{ background: trackColor(value) }} />
+      <input
+        value={txt}
+        onChange={(e) => setTxt(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit();
+        }}
+      />
+    </label>
+  );
+}
+
 function BoxProps({ box }: { box: Box }) {
   const updateBox = useStore((s) => s.updateBox);
+  const setTrackId = useStore((s) => s.setTrackId);
   const focusBox = useStore((s) => s.focusBox);
   const deleteSelected = useStore((s) => s.deleteSelected);
 
@@ -73,6 +108,9 @@ function BoxProps({ box }: { box: Box }) {
         <AxisInput axis="Y" tip="右下角 Y" value={box.bbox[3]} onCommit={(v) => setCorner(3, v)} />
       </div>
 
+      <div className="section-label">轨道</div>
+      <TrackInput value={box.track_id} onCommit={(v) => setTrackId(box.id, v)} />
+
       <div className="kv">
         <span>宽 × 高</span>
         <span>
@@ -85,21 +123,18 @@ function BoxProps({ box }: { box: Box }) {
           {cx.toFixed(1)}, {cy.toFixed(1)}
         </span>
       </div>
-      <div className="kv">
-        <span>置信度</span>
-        <span>{box.score.toFixed(3)}</span>
-      </div>
-      <div className="kv">
-        <span>类别</span>
-        <span>
-          {box.class_name} (#{box.class_id})
-          {box.manual ? ' · 人工新增' : ''}
-        </span>
-      </div>
-      <div className="kv">
-        <span>编号</span>
-        <span>{box.index ?? '未编号'}</span>
-      </div>
+      {box.score != null && (
+        <div className="kv">
+          <span>置信度</span>
+          <span>{box.score.toFixed(3)}</span>
+        </div>
+      )}
+      {box.studId != null && (
+        <div className="kv">
+          <span>ID</span>
+          <span>#{box.studId}</span>
+        </div>
+      )}
       <div className="props-actions">
         <button className="btn" onClick={() => focusBox(box.id)}>
           跳到视图
@@ -109,6 +144,7 @@ function BoxProps({ box }: { box: Box }) {
         </button>
       </div>
       <div className="hint">方向键微移 1px（Shift 10px）</div>
+      <div className="hint">轨道号 = 竖排的列号，改号会同时改变方框颜色</div>
     </div>
   );
 }
@@ -117,6 +153,7 @@ export function PropertiesPanel() {
   const boxes = useStore((s) => s.boxes);
   const selected = useStore((s) => s.selected);
   const select = useStore((s) => s.select);
+  const setSelectedTrackId = useStore((s) => s.setSelectedTrackId);
   const deleteSelected = useStore((s) => s.deleteSelected);
   const selBoxes = boxes.filter((b) => selected.includes(b.id));
 
@@ -133,6 +170,8 @@ export function PropertiesPanel() {
             <span>已选中</span>
             <span>{selBoxes.length} 个方框</span>
           </div>
+          <div className="section-label">统一为轨道</div>
+          <TrackInput value={selBoxes[0].track_id} onCommit={setSelectedTrackId} />
           <div className="hint">可整体拖动；改大小请单选</div>
           <div className="props-actions">
             <button className="btn" onClick={() => select([])}>

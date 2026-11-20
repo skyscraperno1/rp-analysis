@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { BOX_COLORS } from '../lib/colors';
+import { trackColor } from '../lib/colors';
 
 const MM_H = 420;
 
@@ -35,9 +35,8 @@ export function Minimap() {
 
     const kx = W / image.width;
     const ky = MM_H / image.height;
-    ctx.fillStyle = BOX_COLORS.existing.stroke;
     for (const b of boxes) {
-      if (b.manual) continue;
+      ctx.fillStyle = trackColor(b.track_id);
       ctx.fillRect(
         b.bbox[0] * kx,
         b.bbox[1] * ky,
@@ -45,22 +44,18 @@ export function Minimap() {
         Math.max(1.5, (b.bbox[3] - b.bbox[1]) * ky),
       );
     }
-    ctx.fillStyle = BOX_COLORS.manual.stroke;
-    for (const b of boxes) {
-      if (!b.manual) continue;
-      ctx.fillRect(
-        b.bbox[0] * kx,
-        b.bbox[1] * ky,
-        Math.max(1.5, (b.bbox[2] - b.bbox[0]) * kx),
-        Math.max(1.5, (b.bbox[3] - b.bbox[1]) * ky),
-      );
-    }
+    // 选中的框不再单独刷成黄色：仍用轨道本身的颜色，只加一道白描边
     if (selected.length) {
-      ctx.fillStyle = BOX_COLORS.selected.stroke;
       const sel = new Set(selected);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
       for (const b of boxes) {
         if (!sel.has(b.id)) continue;
-        ctx.fillRect(b.bbox[0] * kx, b.bbox[1] * ky, Math.max(2, (b.bbox[2] - b.bbox[0]) * kx), Math.max(2, (b.bbox[3] - b.bbox[1]) * ky));
+        const bw = Math.max(2, (b.bbox[2] - b.bbox[0]) * kx);
+        const bh = Math.max(2, (b.bbox[3] - b.bbox[1]) * ky);
+        ctx.fillStyle = trackColor(b.track_id);
+        ctx.fillRect(b.bbox[0] * kx, b.bbox[1] * ky, bw, bh);
+        ctx.strokeRect(b.bbox[0] * kx, b.bbox[1] * ky, bw, bh);
       }
     }
 

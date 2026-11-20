@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Konva from 'konva';
-import { Image as KonvaImage, Layer, Rect, Stage, Text, Transformer } from 'react-konva';
+import { Image as KonvaImage, Layer, Line, Rect, Stage, Text, Transformer } from 'react-konva';
 import { useStore } from '../store/useStore';
 import { intersects, normalizeRect } from '../lib/geometry';
-import { BOX_COLORS } from '../lib/colors';
+import { BOX_COLORS, trackColor, trackFill } from '../lib/colors';
 import { loadImageFile, loadJsonFile } from '../lib/loaders';
 import { Minimap } from './Minimap';
 import { StatusBar } from './StatusBar';
@@ -15,6 +15,29 @@ type Gesture =
   | { type: 'pan'; sx: number; sy: number; ox: number; oy: number }
   | { type: 'band'; x0: number; y0: number }
   | { type: 'draw'; x0: number; y0: number };
+
+/** 只保留 4 个角点手柄（ Konva Transformer 的 8 个锚点里去掉四边中点） */
+const CORNER_ANCHORS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
+
+/** 方框在屏幕上的短边边长：编辑手柄和中心十字共用同一套"太小就不画"的判断，
+ *  所以两者总是一起出现、一起消失，不会出现只剩十字或只剩手柄的半吊子状态 */
+function shortSideScreen(bbox: [number, number, number, number], scale: number) {
+  return Math.min(bbox[2] - bbox[0], bbox[3] - bbox[1]) * scale;
+}
+
+/** 显示编辑手柄 / 中心十字的最小短边（屏幕像素）。
+ *  只有 4 个角点，同一条边上两个手柄相距 L - anchorSize，
+ *  16px 时还剩 10px 空隙，捏得到也不重叠；之前是 8 个锚点，需要留出
+ *  边中点的位置，所以阈值高（24px）。 */
+const HANDLE_MIN_SCREEN = 16;
+
+/** 框描边宽度（屏幕像素）：普通 / 加粗两档。
+ *  hover 和选中用同一档加粗 —— 选中只多出四个角的手柄，粗细和颜色都不变。 */
+const STROKE_SCREEN = { normal: 1.5, active: 2.5 } as const;
+
+/** 编号字号保底（屏幕像素）：缩放再小也保证数字看得见，
+ *  与手柄/十字的阈值无关 —— 那两者会消失，编号不会。 */
+const MIN_LABEL_SCREEN = 8;
 
 export function AnnotationStage() {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -205,13 +228,15 @@ export function AnnotationStage() {
   }, []);
 
   /* ---------- Transformer 绑定 ---------- */
-  // 选中框在屏幕上的尺寸太小（手柄排不下）时隐藏手柄，
+  // 选中框在屏幕上太小（手柄排不下）时隐藏手柄和中心十字，
   // 此时仍可拖动方框，或用右侧属性面板的 X/Y 数值精修
   const selBox = selected.length === 1 ? boxes.find((b) => b.id === selected[0]) ?? null : null;
+  /* 选中框的轨道色：编辑手柄用它，不再一律黄 */
+  const selColor = selBox ? trackColor(selBox.track_id) : BOX_COLORS.selected;
   const showHandles =
     selBox != null &&
     mode === 'select' &&
-    Math.min(selBox.bbox[2] - selBox.bbox[0], selBox.bbox[3] - selBox.bbox[1]) * view.scale >= 24;
+    shortSideScreen(selBox.bbox, view.scale) >= HANDLE_MIN_SCREEN;
 
   useEffect(() => {
     const tr = trRef.current;
@@ -296,7 +321,6 @@ export function AnnotationStage() {
     }
   };
 
-  const strokeW = 1.5 / view.scale;
 
   return (
     <div className="canvas-wrap">
@@ -326,121 +350,147 @@ export function AnnotationStage() {
         <Layer>
           {visible.map((b) => {
             const isSel = selected.includes(b.id);
+            const tc = trackColor(b.track_id);
+            const isHover = hoverId === b.id;
+            const stroke = tc;
+            const strokeWidth =
+              (isSel || isHover ? STROKE_SCREEN.active : STROKE_SCREEN.normal) / view.scale;
             const w = b.bbox[2] - b.bbox[0];
             const h = b.bbox[3] - b.bbox[1];
+            const cx = b.bbox[0] + w / 2;
+            const cy = b.bbox[1] + h / 2;
+            // 中心十字：屏幕上大小基本固定，但不超出框本身；
+            // 与编辑手柄共用同一个阈值，框太小就一起不画
+            const arm = Math.min(5 / view.scale, Math.min(w, h) * 0.3);
+            const showCross = shortSideScreen(b.bbox, view.scale) >= HANDLE_MIN_SCREEN;
             return (
-              <Rect
-                key={b.id}
-                id={b.id}
-                ref={setNodeRef(b.id)}
-                x={b.bbox[0]}
-                y={b.bbox[1]}
-                width={w}
-                height={h}
-                fill={
-                  isSel
-                    ? BOX_COLORS.selected.fill
-                    : b.manual
-                      ? BOX_COLORS.manual.fill
-                      : BOX_COLORS.existing.fill
-                }
-                stroke={
-                  isSel
-                    ? BOX_COLORS.selected.stroke
-                    : hoverId === b.id
-                      ? BOX_COLORS.hover
-                      : b.manual
-                        ? BOX_COLORS.manual.stroke
-                        : BOX_COLORS.existing.stroke
-                }
-                strokeWidth={isSel ? 2 / view.scale : strokeW}
-                hitStrokeWidth={Math.max(2, 10 / view.scale)}
-                draggable={mode === 'select'}
-                listening={mode === 'select'}
-                perfectDrawEnabled={false}
-                shadowForStrokeEnabled={false}
-                onMouseDown={(e) => {
-                  const st = useStore.getState();
-                  if (st.mode !== 'select') return;
-                  if (e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey) st.toggleSelect(b.id);
-                  else if (!st.selected.includes(b.id)) st.select([b.id]);
-                }}
-                onDragStart={() => {
-                  const st = useStore.getState();
-                  st.pushHistory();
-                  if (st.selected.length > 1 && st.selected.includes(b.id)) {
-                    const orig = new Map<string, [number, number]>();
-                    for (const id of st.selected) {
-                      const bx = st.boxes.find((x) => x.id === id);
-                      if (bx) orig.set(id, [bx.bbox[0], bx.bbox[1]]);
+              <Fragment key={b.id}>
+                <Rect
+                  id={b.id}
+                  ref={setNodeRef(b.id)}
+                  x={b.bbox[0]}
+                  y={b.bbox[1]}
+                  width={w}
+                  height={h}
+                  /* 未选中不填底色，让辊面透出来；选中时填一层轨道色淡底，
+                     多选（全选 / 框选一堆）在画布上才看得见。
+                     命中区域始终覆盖整个方框（Konva 命中画布与视觉填充无关） */
+                  fill={isSel ? trackFill(b.track_id) : "transparent"}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  hitStrokeWidth={Math.max(2, 10 / view.scale)}
+                  draggable={mode === 'select'}
+                  listening={mode === 'select'}
+                  perfectDrawEnabled={false}
+                  shadowForStrokeEnabled={false}
+                  onMouseDown={(e) => {
+                    const st = useStore.getState();
+                    if (st.mode !== 'select') return;
+                    if (e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey) st.toggleSelect(b.id);
+                    else if (!st.selected.includes(b.id)) st.select([b.id]);
+                  }}
+                  onDragStart={() => {
+                    const st = useStore.getState();
+                    st.pushHistory();
+                    if (st.selected.length > 1 && st.selected.includes(b.id)) {
+                      const orig = new Map<string, [number, number]>();
+                      for (const id of st.selected) {
+                        const bx = st.boxes.find((x) => x.id === id);
+                        if (bx) orig.set(id, [bx.bbox[0], bx.bbox[1]]);
+                      }
+                      multiDrag.current = { startX: 0, startY: 0, orig };
                     }
-                    multiDrag.current = { startX: 0, startY: 0, orig };
-                  }
-                }}
-                onDragMove={(e) => {
-                  const md = multiDrag.current;
-                  const st = useStore.getState();
-                  if (md) {
-                    const node = e.target as Konva.Rect;
-                    const dx = node.x() - (md.orig.get(b.id)?.[0] ?? node.x());
-                    const dy = node.y() - (md.orig.get(b.id)?.[1] ?? node.y());
-                    for (const [id, [ox, oy]] of md.orig) {
-                      if (id === b.id) continue;
-                      nodeRefs.current.get(id)?.position({ x: ox + dx, y: oy + dy });
+                  }}
+                  onDragMove={(e) => {
+                    const md = multiDrag.current;
+                    const st = useStore.getState();
+                    if (md) {
+                      const node = e.target as Konva.Rect;
+                      const dx = node.x() - (md.orig.get(b.id)?.[0] ?? node.x());
+                      const dy = node.y() - (md.orig.get(b.id)?.[1] ?? node.y());
+                      for (const [id, [ox, oy]] of md.orig) {
+                        if (id === b.id) continue;
+                        nodeRefs.current.get(id)?.position({ x: ox + dx, y: oy + dy });
+                      }
+                    } else {
+                      const node = e.target as Konva.Rect;
+                      const nx = node.x();
+                      const ny = node.y();
+                      st.updateBoxLive(b.id, [nx, ny, nx + w, ny + h]);
                     }
-                  } else {
-                    const node = e.target as Konva.Rect;
-                    const nx = node.x();
-                    const ny = node.y();
-                    st.updateBoxLive(b.id, [nx, ny, nx + w, ny + h]);
-                  }
-                }}
-                onDragEnd={(e) => {
-                  const md = multiDrag.current;
-                  multiDrag.current = null;
-                  const st = useStore.getState();
-                  if (md) {
-                    const node = e.target as Konva.Rect;
-                    const dx = node.x() - (md.orig.get(b.id)?.[0] ?? 0);
-                    const dy = node.y() - (md.orig.get(b.id)?.[1] ?? 0);
-                    const updates = new Map<string, [number, number, number, number]>();
-                    for (const [id, [ox, oy]] of md.orig) {
-                      const bx = st.boxes.find((x) => x.id === id);
-                      if (!bx) continue;
-                      updates.set(id, [ox + dx, oy + dy, ox + dx + (bx.bbox[2] - bx.bbox[0]), oy + dy + (bx.bbox[3] - bx.bbox[1])]);
+                  }}
+                  onDragEnd={(e) => {
+                    const md = multiDrag.current;
+                    multiDrag.current = null;
+                    const st = useStore.getState();
+                    if (md) {
+                      const node = e.target as Konva.Rect;
+                      const dx = node.x() - (md.orig.get(b.id)?.[0] ?? 0);
+                      const dy = node.y() - (md.orig.get(b.id)?.[1] ?? 0);
+                      const updates = new Map<string, [number, number, number, number]>();
+                      for (const [id, [ox, oy]] of md.orig) {
+                        const bx = st.boxes.find((x) => x.id === id);
+                        if (!bx) continue;
+                        updates.set(id, [ox + dx, oy + dy, ox + dx + (bx.bbox[2] - bx.bbox[0]), oy + dy + (bx.bbox[3] - bx.bbox[1])]);
+                      }
+                      st.updateBoxes(updates);
+                    } else {
+                      const node = e.target as Konva.Rect;
+                      const nx = node.x();
+                      const ny = node.y();
+                      st.updateBox(b.id, [nx, ny, nx + w, ny + h]);
                     }
-                    st.updateBoxes(updates);
-                  } else {
-                    const node = e.target as Konva.Rect;
-                    const nx = node.x();
-                    const ny = node.y();
-                    st.updateBox(b.id, [nx, ny, nx + w, ny + h]);
-                  }
-                }}
-                onMouseEnter={() => setHoverId(b.id)}
-                onMouseLeave={() => setHoverId(null)}
-              />
+                  }}
+                  onMouseEnter={() => setHoverId(b.id)}
+                  onMouseLeave={() => setHoverId(null)}
+                />
+                {showCross && (
+                  <>
+                    <Line
+                      points={[cx - arm, cy, cx + arm, cy]}
+                      stroke={stroke}
+                      strokeWidth={strokeWidth}
+                      listening={false}
+                      perfectDrawEnabled={false}
+                    />
+                    <Line
+                      points={[cx, cy - arm, cx, cy + arm]}
+                      stroke={stroke}
+                      strokeWidth={strokeWidth}
+                      listening={false}
+                      perfectDrawEnabled={false}
+                    />
+                  </>
+                )}
+              </Fragment>
             );
           })}
 
-          {/* 编号文字（框内左上角，避免顶部行显示不下） */}
+          {/* 画布标签（框内左上角，避免顶部行显示不下）。
+              'on' = 原始 stud ID；'number' = 当前激活体系的编号（轨道编号只显示列内序号，
+              轨道由方框颜色编码）；'off' = 不画 */}
           {labelMode !== 'off' &&
             visible.map((b) => {
-              if (b.index == null) return null;
+              const label = b.index ?? b.studId;
+              if (label == null) return null;
               const h = b.bbox[3] - b.bbox[1];
-              const fs = Math.min(12 / view.scale, h * 0.55);
-              // 框在屏幕上太小、字号会低于 2.5px 时不画（避免糊成一片）
-              if (fs < 2.5) return null;
+              // 字号封顶 12px（屏幕），并保底 MIN_LABEL_SCREEN（屏幕）：
+              // 手柄和十字缩小到一定程度会消失，编号不会 —— 缩到再小也看得见
+              const fs = Math.max(
+                MIN_LABEL_SCREEN / view.scale,
+                Math.min(12 / view.scale, h * 0.55),
+              );
               const pad = fs * 0.3;
               return (
                 <Text
                   key={`t_${b.id}`}
                   x={b.bbox[0] + pad}
                   y={b.bbox[1] + pad}
-                  text={String(b.index)}
+                  text={String(label)}
                   fontSize={fs}
                   fontStyle="bold"
-                  fill="#ffd666"
+                  /* 编号跟着框走：同一套颜色，黑边保留保证在辊面上可读 */
+                  fill={trackColor(b.track_id)}
                   stroke="#000000"
                   strokeWidth={Math.max(0.4, fs * 0.16)}
                   fillAfterStrokeEnabled
@@ -457,14 +507,15 @@ export function AnnotationStage() {
             rotateEnabled={false}
             keepRatio={false}
             flipEnabled
+            enabledAnchors={[...CORNER_ANCHORS]}
             anchorSize={6}
             anchorCornerRadius={0}
-            anchorStroke="#ffb300"
+            /* 手柄用当前框的轨道色，不再一律黄 */
+            anchorStroke={selColor}
             anchorStrokeWidth={1}
             anchorFill="#ffffff"
-            borderStroke="#ffb300"
-            borderDash={[4 / view.scale, 4 / view.scale]}
-            ignoreStroke
+            /* 选中态不画虚线边框：加粗的框本身就是选中指示 */
+            borderEnabled={false}
             boundBoxFunc={(oldBox, newBox) =>
               newBox.width < 4 || newBox.height < 4 ? oldBox : newBox
             }
@@ -506,8 +557,8 @@ export function AnnotationStage() {
               y={Math.min(draft.y0, draft.y1)}
               width={Math.abs(draft.x1 - draft.x0)}
               height={Math.abs(draft.y1 - draft.y0)}
-              fill={BOX_COLORS.manual.fill}
-              stroke={BOX_COLORS.manual.stroke}
+              fill="rgba(255,255,255,0.10)"
+              stroke="#ffffff"
               strokeWidth={1.5 / view.scale}
               dash={[6 / view.scale, 4 / view.scale]}
               listening={false}
@@ -519,24 +570,11 @@ export function AnnotationStage() {
       {loading && (
         <div className="overlay">
           <div className="spinner" />
-          <div>正在加载图像（2048 × 18611，约 67MB）…</div>
+          <div>正在加载图像…</div>
         </div>
       )}
-      {!image && !loading && (
-        <div className="overlay">
-          <div>未加载图片</div>
-          <button className="btn primary" onClick={() => document.getElementById('img-input')?.click()}>
-            打开图片
-          </button>
-          <div className="dim">也可以把图片或 JSON 拖到这里</div>
-        </div>
-      )}
-      {image && !loading && boxes.length === 0 && (
-        <div className="overlay hint">没有点位数据，可导入 JSON 或按 D 进入画框模式</div>
-      )}
-
-        <Minimap />
-        <ToolDock />
+      <Minimap />
+      <ToolDock />
       </div>
       <StatusBar cursor={cursor} />
     </div>

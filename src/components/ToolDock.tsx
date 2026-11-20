@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Eraser, Eye, EyeOff, Hand, ListOrdered, MousePointer2, SquareDashed } from 'lucide-react';
+import { Columns3, Eye, EyeOff, Hand, ListOrdered, MousePointer2, SquareDashed } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { TipButton } from './Tooltip';
 import type { ToolMode } from '../types';
@@ -37,9 +37,12 @@ function useTabIndicator(dep: unknown) {
 
 /**
  * 画布右下角浮动工具栏（同一个深色容器内，仅图标 + tooltip）：
- * 左侧是“按键”（排序编号 / 清除编号，较大方块，同款无底色样式），
+ * 左侧是两个“按键”（排序编号 / 重算轨道，较大方块，同款无底色样式），
  * 右侧是两组 tab：工具（选择 / 画框 / 平移）和 编号显示（显示 / 隐藏），
  * 竖线分隔；每组各有一个滑动指示器（物理凸起背景）平滑滑动。
+ *
+ * 「排序编号」算的是 index（按行从上到下、从左到右）；
+ * 「重算轨道」算的是 track_id（按中心 x 重新分列）—— 两者互不相干。
  */
 export function ToolDock() {
   const mode = useStore((s) => s.mode);
@@ -47,8 +50,8 @@ export function ToolDock() {
   const labelMode = useStore((s) => s.labelMode);
   const setLabelMode = useStore((s) => s.setLabelMode);
   const setSortOpen = useStore((s) => s.setSortOpen);
-  const clearIndex = useStore((s) => s.clearIndex);
-  const hasIndex = useStore((s) => s.boxes.some((b) => b.index != null));
+  const openRecomputeTracks = useStore((s) => s.openRecomputeTracks);
+  const hasBoxes = useStore((s) => s.boxes.length > 0);
 
   const toolsInd = useTabIndicator(mode);
   const labelsInd = useTabIndicator(labelMode);
@@ -60,7 +63,7 @@ export function ToolDock() {
     <div className="tool-dock">
       <div className="dock-actions">
         <TipButton
-          tip="排序编号：按行从上到下、从左到右"
+          tip="排序编号：按行从上到下、从左到右，写入编号"
           className="dock-action"
           aria-label="排序编号"
           onClick={() => setSortOpen(true)}
@@ -68,13 +71,13 @@ export function ToolDock() {
           <ListOrdered size={17} strokeWidth={2} />
         </TipButton>
         <TipButton
-          tip="清除编号"
+          tip="重算轨道：按方框中心 x 重新分列，从左到右重写轨道号"
           className="dock-action"
-          aria-label="清除编号"
-          onClick={clearIndex}
-          disabled={!hasIndex}
+          aria-label="重算轨道"
+          onClick={openRecomputeTracks}
+          disabled={!hasBoxes}
         >
-          <Eraser size={16} strokeWidth={2} />
+          <Columns3 size={16} strokeWidth={2} />
         </TipButton>
       </div>
 

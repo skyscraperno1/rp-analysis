@@ -80,6 +80,7 @@ npm run preview    # 本地预览构建产物
 | 删除 | Del / Backspace |
 | 撤销 / 重做 | Ctrl+Z / Ctrl+Shift+Z |
 | 编号 | Dock 上的「排序编号」按键：行容差 20~160px、每行偏移量可调 |
+| 轨道号 | Dock 上的「重算轨道」按键：分列容差 2~60px、每列偏移量可调 |
 | 导出 | 工具栏「导出 JSON」，文件名自动带时间戳（`annotations_annotated_YYYYMMDD_HHmmss.json`），保留原始字段并新增 index，按编号排序 |
 
 **JSON 往返**：导出的文件带 `index`（编号）和 `manual`（人工新增）字段，再次导入时会自动应用——
@@ -99,6 +100,16 @@ npm run preview    # 本地预览构建产物
 
 算法校验：`npm run check:sort`（打印不同容差下的行数分布、编号连续性）。
 
+## 轨道算法
+
+`src/lib/tracksort.ts`：按方框中心 x 重新分列，从左到右重写 track_id（0..N-1）。
+和行排序同构，只是换成 x 方向：每列有独立的参考偏移量（图像 X 坐标，像素），
+点归入"偏移量最近且距离 ≤ 分列容差"的列（容差默认 22px，弹窗里 2~60px 可调，
+比行容差小很多），列中心不齐时可直接修改某一列的偏移量，实时预览每列点数后再确认。
+弹窗还会列出轨道号会变的点位；确认后可 Ctrl+Z 撤销。
+
+算法校验：`npm run check:tracksort`（恒等 / 恢复 / 容差扫描 / 偏移量显式分配）。
+
 ## 目录
 
 ```
@@ -116,6 +127,7 @@ src/components/ToolDock.tsx      右下角浮动工具 Dock
 src/components/BoxList.tsx       左侧点位列表（虚拟滚动）
 src/components/PropertiesPanel.tsx  右侧属性面板
 src/components/SortDialog.tsx    排序编号弹窗（容差 + 每行偏移量）
+src/components/RecomputeTracksDialog.tsx  重算轨道弹窗（分列容差 + 每列偏移量）
 src/components/Minimap.tsx       全局缩略图
 src/components/StatusBar.tsx     底部状态栏
 src/components/Toolbar.tsx       顶部工具栏

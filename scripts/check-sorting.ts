@@ -2,9 +2,10 @@ import { readFileSync } from 'node:fs';
 import { parsePredJson, toBoxes } from '../src/lib/jsonio';
 import { computeSort } from '../src/lib/sorting';
 
-const json = parsePredJson(readFileSync('stitched_rectified_cropped_sahi_pred.json', 'utf8'));
-const boxes = toBoxes(json.detections);
+const json = parsePredJson(readFileSync('public/studs.json', 'utf8'));
+const boxes = toBoxes(json.studs);
 console.log(`boxes: ${boxes.length}`);
+console.log(`tracks: ${new Set(boxes.map((b) => b.track_id)).size}`);
 
 for (const tol of [40, 70, 100]) {
   const r = computeSort(boxes, { tolerance: tol });

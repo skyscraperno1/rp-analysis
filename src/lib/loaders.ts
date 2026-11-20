@@ -3,13 +3,20 @@ import { parsePredJson } from './jsonio';
 
 /** 从 URL 加载图片（本地文件用 objectURL） */
 export function loadImageFromUrl(url: string, name: string): Promise<HTMLImageElement> {
+  const st = useStore.getState();
+  st.setLoading(true);
   return new Promise((resolve, reject) => {
     const img = new Image();
+    const done = () => useStore.getState().setLoading(false);
     img.onload = () => {
       useStore.getState().setImage({ src: url, width: img.naturalWidth, height: img.naturalHeight, name }, img);
+      done();
       resolve(img);
     };
-    img.onerror = () => reject(new Error(`图片加载失败: ${name}`));
+    img.onerror = () => {
+      done();
+      reject(new Error(`图片加载失败: ${name}`));
+    };
     img.src = url;
   });
 }
@@ -19,14 +26,10 @@ export async function loadImageFile(file: File): Promise<HTMLImageElement> {
 }
 
 export async function loadJsonFile(file: File): Promise<void> {
-  const json = parsePredJson(await file.text());
+  const text = await file.text();
+  const json = parsePredJson(text);
   const st = useStore.getState();
   st.loadPrediction(json);
-  const indexed = json.detections.filter((d) => typeof d.index === 'number').length;
-  const manual = json.detections.filter((d) => d.manual).length;
-  const extra = [
-    indexed ? `编号 ${indexed}` : null,
-    manual ? `人工 ${manual}` : null,
-  ].filter(Boolean);
-  st.setNotice(`已导入 ${json.detections.length} 个点位${extra.length ? `（${extra.join('，')}）` : ''}`);
+  const tracks = new Set(json.studs.filter((d) => d.hasTrack).map((d) => d.track_id)).size;
+  st.setNotice(`已导入 ${json.studs.length} 个点位${tracks > 0 ? ` · ${tracks} 条轨道` : ''}`);
 }

@@ -9,6 +9,8 @@
   --warn: #ffb300;
   --danger: #ff4d4f;
   --ok: #52c41a;
+  /* 链接蓝：列表里的 stud 编号（#123）用它，接近 a 标签的观感 */
+  --link: #4f9dff;
   color-scheme: dark;
   /* 覆盖 react-tooltip 库默认的 0.9 透明度 */
   --rt-opacity: 1;
@@ -131,10 +133,43 @@ body {
   color: var(--danger);
 }
 
+/* 当前该点的按钮：呼吸式高亮，提示用户下一步做什么 */
+.btn.attention {
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: btn-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes btn-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(79, 140, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(79, 140, 255, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.attention {
+    animation: none;
+  }
+}
+
 .btn.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+
+/* 透明底按钮：引导弹窗里已完成的那一步用。
+   和主按钮（蓝底）并排时不抢视线，但边框和文字仍在，仍是可点的 */
+.btn.ghost {
+  background: transparent;
+}
+
+.btn.ghost:hover:not(:disabled) {
+  background: var(--panel2);
 }
 
 /* 缩放输入框：显示当前缩放，可输入百分比回车生效 */
@@ -203,22 +238,6 @@ body {
   cursor: default;
 }
 
-.panel-head-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  color: var(--dim);
-  cursor: default;
-}
-
-.panel-head-icon:hover {
-  background: var(--panel2);
-  color: var(--text);
-}
-
 .panel-actions {
   display: flex;
   gap: 6px;
@@ -226,60 +245,78 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-/* 列表筛选 tab：全部 / 原有 / 新增 */
-.list-filter {
+/* 排序条：原序 / 编号 / 轨道 三段切换，内嵌深色容器 */
+.sort-bar {
   display: flex;
-  gap: 2px;
-  padding: 6px 8px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--border);
 }
 
-.filter-tab {
+.sort-label {
+  flex: none;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.sort-seg {
+  position: relative;
+  display: flex;
   flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 24px;
+  min-width: 0;
+  gap: 2px;
+  padding: 2px;
+  background: #16171b;
+  border-radius: 7px;
+}
+
+/* 滑动指示器：选中 tab 的物理凸起背景，在 tab 之间平滑滑动 */
+.sort-tab-ind {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 20px;
+  border-radius: 5px;
+  background: #3d3f47;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition:
+    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sort-tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  height: 20px;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
   color: var(--dim);
   font-size: 11px;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition: color 0.12s;
 }
 
-.filter-tab:hover {
+.sort-tab:hover {
   color: var(--text);
 }
 
-.filter-tab.active {
-  background: #3d3f47;
+/* 选中态的背景由滑动指示器提供，这里只提亮文字 */
+.sort-tab.active {
   color: #ffffff;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.filter-tab em {
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.7;
-}
-
-.filter-tab .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-}
-
-.filter-tab .dot.existing {
-  background: var(--ok);
-}
-
-.filter-tab .dot.manual {
-  background: #1677ff;
+@media (prefers-reduced-motion: reduce) {
+  .sort-tab-ind {
+    transition: none;
+  }
 }
 
 .list-empty {
@@ -302,14 +339,12 @@ body {
   padding: 0 10px;
   cursor: pointer;
   border-left: 2px solid transparent;
+  /* 极淡的分隔线：896 行扫下来不跳行 */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
 }
 
 .boxrow:hover {
   background: var(--panel2);
-}
-
-.boxrow.manual {
-  border-left-color: #1677ff;
 }
 
 .boxrow.sel {
@@ -317,11 +352,42 @@ body {
   border-left-color: var(--warn);
 }
 
-.boxrow .idx {
-  width: 34px;
-  text-align: right;
+/* 轨道列：色块承担颜色信息，数字压暗，不跟 ID 抢注意力 */
+.boxrow .track {
+  width: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-variant-numeric: tabular-nums;
-  color: var(--warn);
+  font-weight: 400;
+  color: var(--dim);
+  flex: none;
+}
+
+.boxrow .track .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+/* # 列：点位的编号（排序编号优先，退回文件 ID），放最前面，链接蓝 + # 前缀。
+   两者都没有时也保留一个裸 #，列不会空掉 */
+.boxrow .id {
+  width: 42px;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--link);
+  font-weight: 500;
+}
+
+/* 当前排序键那一列提亮加粗，列表在按什么排一眼能看出 */
+.boxrow .id.key {
+  font-weight: 700;
+}
+
+.boxrow .track.key {
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -367,6 +433,7 @@ body {
   display: block;
 }
 
+/* 加载中的全屏遮罩（只有这一处还用 overlay） */
 .overlay {
   position: absolute;
   inset: 0;
@@ -380,17 +447,54 @@ body {
   z-index: 5;
 }
 
-.overlay.hint {
-  background: none;
-  pointer-events: none;
-  color: var(--dim);
-  align-items: flex-end;
-  padding-bottom: 40px;
+/* 引导弹窗里的两步行：编号圆点 + 文字 + 按钮。
+   一次只亮一步，三种状态：
+   - is-active 当前步：编号亮蓝、文字全亮、主按钮（蓝底）
+   - is-done   已完成：编号保持亮蓝、按钮换成透明底，不与当前步抢视线
+   - is-locked 未解锁：整行压暗、按钮 disabled */
+.start-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.overlay .dim {
-  color: var(--dim);
+.start-no {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--dim);
+  color: #fff;
   font-size: 12px;
+  font-weight: 700;
+}
+
+.start-label {
+  flex: 1;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.start-row.is-active .start-no,
+.start-row.is-done .start-no {
+  background: var(--accent);
+}
+
+.start-row .btn {
+  flex: none;
+  min-width: 84px;
+}
+
+/* 未解锁：整行压暗（编号圆点回到灰） */
+.start-row.is-locked {
+  opacity: 0.45;
+}
+
+.start-row.is-locked .start-no {
+  background: var(--dim);
 }
 
 .spinner {
@@ -406,6 +510,173 @@ body {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ---------- 右栏：定位基准 ----------
+   布局上完全透明（属性面板照样填满整列），只是给使用说明当绝对定位的参照物 */
+.side-right {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.side-right .props-panel {
+  flex: 1;
+  min-height: 0;
+}
+/* ---------- 使用说明（右栏右下角） ----------
+   一个小圆钮常驻，绝对定位在右栏右下角；卡片收在它正上方、朝左展开 */
+.help-card,
+.help-fab {
+  /* 多层叠加的阴影：最内层是接触阴影（最实），越往外越淡，
+     模拟物体浮在画布上的环境光遮蔽，比单层 box-shadow 有物理感 */
+  --help-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.32),
+    0 1px 2px rgba(0, 0, 0, 0.42),
+    0 3px 6px rgba(0, 0, 0, 0.32),
+    0 8px 16px rgba(0, 0, 0, 0.24),
+    0 16px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* 圆钮：绝对定位在右栏右下角（往上多留点空间，避开输入法候选栏） */
+.help-fab {
+  position: absolute;
+  right: 10px;
+  bottom: 28px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--dim);
+  cursor: pointer;
+  box-shadow: var(--help-shadow);
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+/* hover 只做底色/图标提亮：不跳动，也不加描边 */
+.help-fab:hover {
+  background: var(--panel2);
+  color: var(--text);
+}
+
+/* 卡片：贴在圆钮上方，朝左展开（从右下角长出 / 缩回） */
+.help-card {
+  position: absolute;
+  right: 10px;
+  bottom: 74px;
+  z-index: 7;
+  width: 268px;
+  max-height: calc(100% - 84px);
+  display: flex;
+  flex-direction: column;
+  background: rgba(30, 31, 36, 0.97);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--help-shadow);
+  overflow: hidden;
+  transform-origin: right bottom;
+  transition:
+    opacity 0.18s ease,
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.help-card.is-closed {
+  opacity: 0;
+  transform: scale(0.9);
+  visibility: hidden;
+  pointer-events: none;
+  /* 收起：等淡出结束再真正隐藏，避免内容提前消失 */
+  transition:
+    opacity 0.18s ease,
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0s linear 0.2s;
+}
+
+.help-head {
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.help-body {
+  padding: 8px 12px 10px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3d3f47 transparent;
+}
+
+.help-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.help-body::-webkit-scrollbar-thumb {
+  background: #3d3f47;
+  border-radius: 4px;
+}
+
+.help-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.help-group + .help-group {
+  margin-top: 8px;
+}
+
+.help-group-title {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+}
+
+.help-row {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--dim);
+}
+
+.help-row kbd {
+  flex: none;
+  min-width: 62px;
+  padding: 1px 5px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.help-row span {
+  color: var(--text);
+}
+
+.help-foot {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  color: var(--dim);
+  font-size: 10px;
 }
 
 /* ---------- 缩略图 ---------- */
@@ -615,6 +886,16 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* 左侧信息不被压缩，空间不够时由图例区收缩裁剪 */
+.statusbar > span {
+  flex: none;
+}
+
+.statusbar .spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
 .statusbar .sep {
   opacity: 0.4;
 }
@@ -685,6 +966,18 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* 轨道号输入框：复用 X/Y 轴输入的容器样式，前面的色块即画布中方框的颜色 */
+.track-input {
+  flex: none;
+}
+
+.track-input .swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+
 .kv {
   display: flex;
   justify-content: space-between;
@@ -713,6 +1006,17 @@ body {
   font-size: 11px;
 }
 
+/* 无遮罩模式：背景不变暗，也不带投影（启动引导弹窗用） */
+.modal-mask.no-mask {
+  background: none;
+  pointer-events: none;
+}
+
+.modal-mask.no-mask .modal {
+  pointer-events: auto;
+  box-shadow: none;
+}
+
 /* ---------- 弹窗 ---------- */
 .modal-mask {
   position: fixed;
@@ -735,6 +1039,49 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* 弹窗正文统一 12px（标题 15px 单独放大）：说明、滑杆标签、预览、列表、按钮同字号，
+     不让有的文字继承 body 的 13px、有的写死 11px */
+  font-size: 12px;
+}
+
+/* 弹窗标题行：标题 + 右上角关闭钮 */
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modal-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.modal-close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: var(--panel2);
+  color: var(--text);
+}
+
+/* 弹窗底部按钮区：所有按钮统一靠右排列 */
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .modal h3 {
@@ -745,6 +1092,12 @@ body {
 .modal .desc {
   margin: 0;
   color: var(--dim);
+  font-size: 12px;
+}
+
+/* 弹窗里的分区标签 / 脚注也跟 12px（侧栏面板里保持 11px 的密度） */
+.modal .section-label,
+.modal .hint {
   font-size: 12px;
 }
 
@@ -843,15 +1196,32 @@ body {
 }
 
 .offset-row .osize {
-  width: 44px;
+  width: 48px;
   text-align: right;
   color: var(--dim);
-  font-size: 11px;
+  font-size: 12px;
+}
+
+/* 重算轨道弹窗：带色块的轨道号 */
+.offset-row .tno {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 28px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.offset-row .tno .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
 }
 
 .btn.small {
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .warn {
@@ -862,17 +1232,55 @@ body {
 .legend {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 1px;
   white-space: nowrap;
+  overflow: hidden;
 }
 
+/* 单个轨道：点一下 = 列表只看该轨道，再点一下取消；选中样式沿用提亮凸起。
+   line-height 设为 1：让文字行高贴合字形，色块和数字才是光学居中
+   （行高偏大时文字在行盒里偏上，旁边的色块会显得低半格） */
+.legend-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 4px;
+  margin-left: 2px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dim);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.legend-track:hover {
+  background: var(--panel2);
+  color: var(--text);
+}
+
+.legend-track.active {
+  background: #3d3f47;
+  color: #ffffff;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+
 .legend i {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 2px;
   display: inline-block;
-  margin-left: 8px;
+  flex: none;
 }
+
 
 .actions {
   display: flex;

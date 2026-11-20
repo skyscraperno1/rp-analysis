@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { Box, LabelMode, PredJson, ToolMode } from '../types';
 import { computeSort, type SortOptions } from '../lib/sorting';
+import { guessTrackId } from '../lib/tracks';
+import { recomputeTracks, type RecomputeTracksOptions } from '../lib/tracksort';
 import { buildExport, downloadJson, fileTimestamp, toBoxes } from '../lib/jsonio';
 import { clamp } from '../lib/geometry';
 
@@ -32,6 +34,7 @@ interface Meta {
   image?: string;
   image_width?: number;
   image_height?: number;
+  coordinate_system?: string;
   params?: Record<string, unknown>;
 }
 
@@ -40,15 +43,26 @@ interface StoreState {
   imageEl: HTMLImageElement | null;
   meta: Meta | null;
   boxes: Box[];
+  /** 每次导入新数据自增，用于把视图类状态（排序等）重置回默认 */
+  dataVersion: number;
   mode: ToolMode;
   labelMode: LabelMode;
   selected: string[];
+  /** 轨道筛选：null = 全部。左侧图例和右下角状态栏图例共用 */
+  trackFilter: number | null;
+  /** 使用说明卡片是否展开：加载图片时置 true（仅当还没有数据），
+   *  导入 JSON 时置 false —— 也就是只在"有图没数据"时自动出现 */
+  helpOpen: boolean;
+  /** 启动时的「开始标注」引导弹窗；加载过图片或数据后关闭 */
+  setupPromptOpen: boolean;
   view: ViewState;
   vp: { width: number; height: number };
   loading: boolean;
   error: string | null;
   notice: string | null;
   sortOpen: boolean;
+  /** 「重算轨道」确认弹窗是否打开 */
+  recomputeOpen: boolean;
   past: Box[][];
   future: Box[][];
 
@@ -61,6 +75,10 @@ interface StoreState {
   setMode: (m: ToolMode) => void;
   setLabelMode: (m: LabelMode) => void;
   setSortOpen: (v: boolean) => void;
+  setRecomputeOpen: (v: boolean) => void;
+  setTrackFilter: (v: number | null) => void;
+  setHelpOpen: (v: boolean) => void;
+  setSetupPromptOpen: (v: boolean) => void;
 
   select: (ids: string[], additive?: boolean) => void;
   toggleSelect: (id: string) => void;
@@ -78,6 +96,10 @@ interface StoreState {
   updateBox: (id: string, bbox: [number, number, number, number]) => void;
   updateBoxes: (updates: Map<string, [number, number, number, number]>) => void;
   updateBoxLive: (id: string, bbox: [number, number, number, number]) => void;
+  /** 修改一个点位的轨道号（画布颜色与右侧面板同步） */
+  setTrackId: (id: string, trackId: number) => void;
+  /** 批量修改选中点位的轨道号 */
+  setSelectedTrackId: (trackId: number) => void;
   moveSelected: (dx: number, dy: number) => void;
   deleteSelected: () => void;
 
@@ -86,7 +108,10 @@ interface StoreState {
   redo: () => void;
 
   applySort: (opts: SortOptions, offsets?: number[]) => void;
-  clearIndex: () => void;
+  /** 按几何（中心 x）重算所有点位的 track_id：先开确认弹窗预览，用户确认后才真正改写 */
+  openRecomputeTracks: () => void;
+  /** 确认重算：真正改写 track_id，进历史栈可 Ctrl+Z */
+  applyRecomputeTracks: (opts: RecomputeTracksOptions, offsets?: number[]) => void;
   exportJson: () => void;
 }
 
@@ -107,15 +132,20 @@ export const useStore = create<StoreState>((setState, getState) => ({
   imageEl: null,
   meta: null,
   boxes: [],
+  dataVersion: 0,
   mode: 'select',
   labelMode: 'on',
   selected: [],
+  trackFilter: null,
+  helpOpen: false,
+  setupPromptOpen: true,
   view: { scale: 0.5, x: 0, y: 0 },
   vp: { width: 0, height: 0 },
-  loading: true,
+  loading: false,
   error: null,
   notice: null,
   sortOpen: false,
+  recomputeOpen: false,
   past: [],
   future: [],
 
@@ -124,23 +154,34 @@ export const useStore = create<StoreState>((setState, getState) => ({
   setNotice: (v) => setState({ notice: v }),
 
   loadPrediction: (json) =>
-    setState({
+    setState((s) => ({
       meta: {
         image: json.image,
         image_width: json.image_width,
         image_height: json.image_height,
+        coordinate_system: json.coordinate_system,
         params: json.params,
       },
-      boxes: toBoxes(json.detections),
+      boxes: toBoxes(json.studs),
       selected: [],
+      trackFilter: null,
       past: [],
       future: [],
-    }),
+      dataVersion: s.dataVersion + 1,
+      // 数据一到就收起说明：只在这之前（有图没数据）自动显示
+      helpOpen: false,
+      setupPromptOpen: false,
+    })),
 
   setImage: (info, el) =>
     setState((s) => ({
       image: info,
       imageEl: el,
+      // 图片加载完弹出使用说明；但如果数据已经在（先导 JSON 再导图），就不弹
+      helpOpen: s.boxes.length === 0,
+      // 数据还没导入就留着引导弹窗，让用户接着走第二步（选 JSON）；
+      // 数据已经在了才说明它的使命完成了
+      setupPromptOpen: s.boxes.length === 0 ? s.setupPromptOpen : false,
       // 图片尺寸与 JSON 声明不一致时给出提示
       notice:
         s.meta?.image_width && s.meta.image_width !== info.width
@@ -152,6 +193,10 @@ export const useStore = create<StoreState>((setState, getState) => ({
   setMode: (m) => setState({ mode: m }),
   setLabelMode: (m) => setState({ labelMode: m }),
   setSortOpen: (v) => setState({ sortOpen: v }),
+  setRecomputeOpen: (v) => setState({ recomputeOpen: v }),
+  setTrackFilter: (v) => setState({ trackFilter: v }),
+  setHelpOpen: (v) => setState({ helpOpen: v }),
+  setSetupPromptOpen: (v) => setState({ setupPromptOpen: v }),
 
   select: (ids, additive) =>
     setState((s) => ({
@@ -161,7 +206,13 @@ export const useStore = create<StoreState>((setState, getState) => ({
     setState((s) => ({
       selected: s.selected.includes(id) ? s.selected.filter((x) => x !== id) : [...s.selected, id],
     })),
-  selectAll: () => setState((s) => ({ selected: s.boxes.map((b) => b.id) })),
+  /** 全选：只选当前列表可见的点位（受轨道筛选影响），不是把所有点都选上 */
+  selectAll: () =>
+    setState((s) => ({
+      selected: s.boxes
+        .filter((b) => s.trackFilter == null || b.track_id === s.trackFilter)
+        .map((b) => b.id),
+    })),
 
   setView: (v) => setState((s) => ({ view: clampView(v, s.vp, s.image) })),
 
@@ -217,16 +268,22 @@ export const useStore = create<StoreState>((setState, getState) => ({
 
   addBox: (bbox) => {
     const id = uid();
-    setState((s) => ({
-      past: [...s.past, s.boxes].slice(-HISTORY_LIMIT),
-      future: [],
-      boxes: [
-        ...s.boxes,
-        { id, bbox, score: 1, class_id: 0, class_name: 'item', index: null, manual: true },
-      ],
-      selected: [id],
-      notice: '已新增 1 个方框',
-    }));
+    setState((s) => {
+      // 按 x 方向猜最近的列；离所有列都远才新开一条轨道
+      const trackId = guessTrackId(s.boxes, bbox);
+      // 这批数据本来就有 id 才接着往下编号；否则新框也不发号，避免凭空造
+      const usesIds = s.boxes.some((b) => b.studId != null);
+      const studId = usesIds
+        ? s.boxes.reduce((m, b) => Math.max(m, b.studId ?? 0), 0) + 1
+        : null;
+      return {
+        past: [...s.past, s.boxes].slice(-HISTORY_LIMIT),
+        future: [],
+        boxes: [...s.boxes, { id, bbox, track_id: trackId, studId, hasTrack: true, index: null }],
+        selected: [id],
+        notice: '已新增 1 个方框',
+      };
+    });
     return id;
   },
 
@@ -236,6 +293,31 @@ export const useStore = create<StoreState>((setState, getState) => ({
       future: [],
       boxes: s.boxes.map((b) => (b.id === id ? { ...b, bbox } : b)),
     })),
+
+  setTrackId: (id, trackId) =>
+    setState((s) => {
+      const t = Math.max(0, Math.floor(trackId));
+      if (!Number.isFinite(t)) return {};
+      return {
+        past: [...s.past, s.boxes].slice(-HISTORY_LIMIT),
+        future: [],
+        boxes: s.boxes.map((b) => (b.id === id ? { ...b, track_id: t, hasTrack: true } : b)),
+      };
+    }),
+
+  setSelectedTrackId: (trackId) =>
+    setState((s) => {
+      if (s.selected.length === 0) return {};
+      const t = Math.max(0, Math.floor(trackId));
+      if (!Number.isFinite(t)) return {};
+      const sel = new Set(s.selected);
+      return {
+        past: [...s.past, s.boxes].slice(-HISTORY_LIMIT),
+        future: [],
+        boxes: s.boxes.map((b) => (sel.has(b.id) ? { ...b, track_id: t, hasTrack: true } : b)),
+        notice: `已将 ${sel.size} 个点位设为轨道 ${t}`,
+      };
+    }),
 
   updateBoxes: (updates) =>
     setState((s) => ({
@@ -313,13 +395,24 @@ export const useStore = create<StoreState>((setState, getState) => ({
       };
     }),
 
-  clearIndex: () =>
-    setState((s) => ({
-      past: [...s.past, s.boxes].slice(-HISTORY_LIMIT),
-      future: [],
-      boxes: s.boxes.map((b) => ({ ...b, index: null })),
-      notice: '已清除全部编号',
-    })),
+  openRecomputeTracks: () => setState({ recomputeOpen: true }),
+
+  applyRecomputeTracks: (opts, offsets) =>
+    setState((s) => {
+      const res = recomputeTracks(s.boxes, { ...opts, offsets });
+      // 文件没有 ID 时就只报轨道号变化，别把 null 拼进去
+      const moves = res.moves.map((m) => `${m.studId ?? '#'}:${m.from}→${m.to}`).join(' ');
+      return {
+        past: [...s.past, s.boxes].slice(-HISTORY_LIMIT),
+        future: [],
+        boxes: res.boxes,
+        recomputeOpen: false,
+        notice:
+          res.changed === 0
+            ? `已重算轨道：${res.trackCount} 条轨道 / ${s.boxes.length} 个点位 · 无变化`
+            : `已重算轨道：${res.trackCount} 条轨道 / ${s.boxes.length} 个点位 · ${res.changed} 个点位轨道号有变化${moves ? `（${moves}${res.changed > res.moves.length ? ' …' : ''}）` : ''}`,
+      };
+    }),
 
   exportJson: () =>
     setState((s) => {
