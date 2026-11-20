@@ -1,15 +1,12 @@
 import { useStore } from '../store/useStore';
 import type { RestoreItem } from '../types';
+import { kvDelete, kvGet, kvPut } from './db/idb';
 import { loadImageFile, loadJsonFile } from './loaders';
 
 /* 记住用户上次选的文件：只存 FileSystemFileHandle —— 一个几百字节的"取件凭证"，
    不存文件内容。句柄可以直接结构化克隆进 IndexedDB，之后 handle.getFile()
    拿到的永远是磁盘上的当前版本，所以文件被外部改过也不会读到旧数据。
    文件本体仍留在用户自己的硬盘上，浏览器不占存储，也不会被清理。 */
-
-const DB_NAME = 'rp-file-cache';
-const DB_VERSION = 1;
-const STORE = 'handles';
 
 export type CacheKind = 'image' | 'json';
 
@@ -22,48 +19,6 @@ const ACCEPT: Record<CacheKind, Array<{ description: string; accept: Record<stri
 /** 只有 Chromium 系有 File System Access API；别的浏览器返回 false，调用方回退到 <input> */
 export function pickerSupported(): boolean {
   return typeof window.showOpenFilePicker === 'function';
-}
-
-/* ---------- IndexedDB ---------- */
-
-let dbp: Promise<IDBDatabase> | null = null;
-
-function db(): Promise<IDBDatabase> {
-  if (!dbp) {
-    dbp = new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-  return dbp;
-}
-
-function run<T>(fn: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  return db().then(
-    (d) =>
-      new Promise<T>((resolve, reject) => {
-        const tx = d.transaction(STORE, 'readwrite');
-        const rq = fn(tx.objectStore(STORE));
-        rq.onsuccess = () => resolve(rq.result);
-        tx.onerror = () => reject(tx.error);
-        tx.onabort = () => reject(tx.error);
-      }),
-  );
-}
-
-async function put(kind: CacheKind, handle: FileSystemFileHandle): Promise<void> {
-  await run((s) => s.put(handle, kind));
-}
-
-async function get(kind: CacheKind): Promise<FileSystemFileHandle | null> {
-  const h = await run((s) => s.get(kind) as IDBRequest<FileSystemFileHandle | undefined>);
-  return h ?? null;
-}
-
-async function drop(kind: CacheKind): Promise<void> {
-  await run((s) => s.delete(kind));
 }
 
 /* ---------- 权限 ---------- */
@@ -94,7 +49,7 @@ async function loadFrom(kind: CacheKind, handle: FileSystemFileHandle): Promise<
     file = await handle.getFile();
   } catch {
     // 文件被移动 / 删除 / 改名：这张卡作废，清掉，别下次再试
-    await drop(kind).catch(() => {});
+    await kvDelete(kind).catch(() => {});
     useStore.getState().setError(`文件已不存在: ${handle.name}`);
     return false;
   }
@@ -111,7 +66,7 @@ async function loadFrom(kind: CacheKind, handle: FileSystemFileHandle): Promise<
 
 async function refreshCount(): Promise<void> {
   try {
-    const [a, b] = await Promise.all([get('image'), get('json')]);
+    const [a, b] = await Promise.all([kvGet<FileSystemFileHandle>('image'), kvGet<FileSystemFileHandle>('json')]);
     useStore.getState().setCacheCount((a ? 1 : 0) + (b ? 1 : 0));
   } catch {
     // 库打不开（隐私模式等）就当没记住过
@@ -136,7 +91,7 @@ export function chooseJson(): void {
 async function pickAndLoad(kind: CacheKind): Promise<void> {
   try {
     const [handle] = await window.showOpenFilePicker!({ multiple: false, types: ACCEPT[kind] });
-    await put(kind, handle);
+    await kvPut(kind, handle);
     await refreshCount();
     await loadFrom(kind, handle);
   } catch (e) {
@@ -153,8 +108,8 @@ export async function restoreOnStart(): Promise<void> {
   let img: FileSystemFileHandle | null = null;
   let js: FileSystemFileHandle | null = null;
   try {
-    img = await get('image');
-    js = await get('json');
+    img = await kvGet<FileSystemFileHandle>('image');
+    js = await kvGet<FileSystemFileHandle>('json');
   } catch {
     return; // 库打不开：当没记住过
   }
@@ -193,7 +148,7 @@ export async function restoreOnStart(): Promise<void> {
 
 /** 用户在引导弹窗里点「恢复」：请求授权后加载 */
 export async function restoreByClick(kind: RestoreItem['kind']): Promise<void> {
-  const handle = await get(kind);
+  const handle = await kvGet<FileSystemFileHandle>(kind);
   if (!handle) return;
   if (!(await askRead(handle))) return;
   if (await loadFrom(kind, handle)) {
@@ -218,7 +173,7 @@ function finishRestore(): void {
 /** 清除缓存：删掉两个句柄。当前画面和标注一动不动 */
 export async function clearCache(): Promise<void> {
   try {
-    await Promise.all([drop('image'), drop('json')]);
+    await Promise.all([kvDelete('image'), kvDelete('json')]);
   } catch {
     // 库打不开时库存里本来也没有
   }
