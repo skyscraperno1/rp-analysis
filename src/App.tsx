@@ -10,6 +10,7 @@ import { RecomputeTracksDialog } from './components/RecomputeTracksDialog';
 import { AppTooltip } from './components/Tooltip';
 import { StartPrompt } from './components/StartPrompt';
 import { useKeyboard } from './hooks/useKeyboard';
+import { restoreOnStart } from './lib/fileCache';
 
 export default function App() {
   useKeyboard();
@@ -23,6 +24,12 @@ export default function App() {
     const t = setTimeout(() => useStore.getState().setNotice(null), 2600);
     return () => clearTimeout(t);
   }, [notice]);
+
+  /* 启动时恢复上次记住的文件：引导弹窗列出图片名和 JSON 名，
+     能自动读的转圈等它读完，需要授权的留着「恢复」按钮 */
+  useEffect(() => {
+    void restoreOnStart();
+  }, []);
 
   return (
     <div className="app">

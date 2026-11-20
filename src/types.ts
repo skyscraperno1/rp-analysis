@@ -40,3 +40,12 @@ export interface PredJson {
 export type ToolMode = 'select' | 'draw' | 'pan';
 /** 画布标签显示：开 / 关 */
 export type LabelMode = 'on' | 'off';
+
+/** 启动恢复时引导弹窗里列出的文件条目 */
+export interface RestoreItem {
+  kind: 'image' | 'json';
+  /** 文件名，仅用于显示 */
+  name: string;
+  /** loading 正在自动加载；need 需要用户点一下「恢复」；done 已加载完 */
+  status: 'loading' | 'need' | 'done';
+}

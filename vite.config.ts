@@ -9,7 +9,9 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
-    port: 5173,
+  port: 5173,
+  // IndexedDB 按 origin（含端口）隔离，端口一漂记住的文件句柄就"丢"了，锁死
+  strictPort: true,
     // 本机路径含中文，系统文件监听会漏事件，改用轮询确保 HMR 可靠
     watch: {
       usePolling: true,

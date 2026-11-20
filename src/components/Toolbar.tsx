@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Download,
+  Eraser,
   ImageUp,
   MoveHorizontal,
   Redo2,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { loadImageFile, loadJsonFile } from '../lib/loaders';
+import { chooseImage, chooseJson, clearCache } from '../lib/fileCache';
 import { TipButton } from './Tooltip';
 
 /** 缩放输入框：显示当前缩放，可直接输入百分比，回车 / 失焦生效 */
@@ -66,6 +68,7 @@ export function Toolbar() {
   const zoomAt = useStore((s) => s.zoomAt);
   const fitWidth = useStore((s) => s.fitWidth);
   const exportJson = useStore((s) => s.exportJson);
+  const cacheCount = useStore((s) => s.cacheCount);
 
   const imgInput = useRef<HTMLInputElement>(null);
   const jsonInput = useRef<HTMLInputElement>(null);
@@ -86,7 +89,7 @@ export function Toolbar() {
           tip="打开图片"
           dir="bottom"
           className={`btn${needImage ? ' attention' : ''}`}
-          onClick={() => imgInput.current?.click()}
+          onClick={chooseImage}
         >
           <ImageUp size={16} strokeWidth={1.8} />
         </TipButton>
@@ -94,13 +97,19 @@ export function Toolbar() {
           tip="导入 JSON"
           dir="bottom"
           className={`btn${needData ? ' attention' : ''}`}
-          onClick={() => jsonInput.current?.click()}
+          onClick={chooseJson}
         >
           <Upload size={16} strokeWidth={1.8} />
         </TipButton>
         <TipButton tip="导出 JSON（保留原始字段，按编号排序，文件名带时间戳）" dir="bottom" className="btn primary" onClick={exportJson}>
           <Download size={16} strokeWidth={1.8} />
         </TipButton>
+        {/* 删掉记住的文件句柄，不动当前画面；只有真记住了才出现 */}
+        {cacheCount > 0 && (
+          <TipButton tip="清除缓存" dir="bottom" className="btn danger bare" onClick={() => void clearCache()}>
+            <Eraser size={16} strokeWidth={1.8} />
+          </TipButton>
+        )}
         <input
           id="img-input"
           ref={imgInput}

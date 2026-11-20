@@ -4,6 +4,15 @@ import { useStore } from '../store/useStore';
 /** 快捷键说明分组：键位用 <kbd> 显示，描述紧跟其后 */
 const GROUPS: { title: string; items: [string, string][] }[] = [
   {
+    title: '文件',
+    items: [
+      ['打开图片', '选过一次就记住，下次进页面自动加载'],
+      ['导入 JSON', '同样记住；重新选择会覆盖'],
+      ['拖入窗口', '直接加载，不计入记忆'],
+      ['清除缓存', '忘掉记住的文件，不影响当前画面'],
+    ],
+  },
+  {
     title: '视图',
     items: [
       ['滚轮', '上下平移'],

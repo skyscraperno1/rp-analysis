@@ -59,6 +59,9 @@ export function AnnotationStage() {
   const view = useStore((s) => s.view);
   const vp = useStore((s) => s.vp);
   const loading = useStore((s) => s.loading);
+  const loadingName = useStore((s) => s.loadingName);
+  // 启动恢复时由引导弹窗报进度，画布上这个就不再重复刷一次
+  const restoring = useStore((s) => s.restoreItems.some((i) => i.status !== 'done'));
 
   const [size, setSize] = useState({ width: 100, height: 100 });
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -567,10 +570,10 @@ export function AnnotationStage() {
         </Layer>
       </Stage>
 
-      {loading && (
+      {loading && !restoring && (
         <div className="overlay">
           <div className="spinner" />
-          <div>正在加载图像…</div>
+          <div>{loadingName ?? '正在加载图像…'}</div>
         </div>
       )}
       <Minimap />

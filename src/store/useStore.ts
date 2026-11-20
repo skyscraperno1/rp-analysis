@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Box, LabelMode, PredJson, ToolMode } from '../types';
+import type { Box, LabelMode, PredJson, RestoreItem, ToolMode } from '../types';
 import { computeSort, type SortOptions } from '../lib/sorting';
 import { guessTrackId } from '../lib/tracks';
 import { recomputeTracks, type RecomputeTracksOptions } from '../lib/tracksort';
@@ -55,9 +55,15 @@ interface StoreState {
   helpOpen: boolean;
   /** 启动时的「开始标注」引导弹窗；加载过图片或数据后关闭 */
   setupPromptOpen: boolean;
+  /** 已记住的文件句柄数量（0/1/2）：顶栏「清除缓存」按钮据此显隐 */
+  cacheCount: number;
+  /** 缓存里记着、启动时正在恢复的文件条目；空数组 = 不在恢复中 */
+  restoreItems: RestoreItem[];
   view: ViewState;
   vp: { width: number; height: number };
   loading: boolean;
+  /** 正在加载的文件名：加载过程中显示，让人知道当前在开哪个文件 */
+  loadingName: string | null;
   error: string | null;
   notice: string | null;
   sortOpen: boolean;
@@ -66,7 +72,7 @@ interface StoreState {
   past: Box[][];
   future: Box[][];
 
-  setLoading: (v: boolean) => void;
+  setLoading: (v: boolean, name?: string) => void;
   setError: (v: string | null) => void;
   setNotice: (v: string | null) => void;
   loadPrediction: (json: PredJson) => void;
@@ -79,6 +85,8 @@ interface StoreState {
   setTrackFilter: (v: number | null) => void;
   setHelpOpen: (v: boolean) => void;
   setSetupPromptOpen: (v: boolean) => void;
+  setCacheCount: (n: number) => void;
+  setRestoreItems: (v: RestoreItem[]) => void;
 
   select: (ids: string[], additive?: boolean) => void;
   toggleSelect: (id: string) => void;
@@ -139,9 +147,12 @@ export const useStore = create<StoreState>((setState, getState) => ({
   trackFilter: null,
   helpOpen: false,
   setupPromptOpen: true,
+  cacheCount: 0,
+  restoreItems: [],
   view: { scale: 0.5, x: 0, y: 0 },
   vp: { width: 0, height: 0 },
   loading: false,
+  loadingName: null,
   error: null,
   notice: null,
   sortOpen: false,
@@ -149,7 +160,7 @@ export const useStore = create<StoreState>((setState, getState) => ({
   past: [],
   future: [],
 
-  setLoading: (v) => setState({ loading: v }),
+  setLoading: (v, name) => setState({ loading: v, loadingName: v ? (name ?? null) : null }),
   setError: (v) => setState({ error: v }),
   setNotice: (v) => setState({ notice: v }),
 
@@ -197,6 +208,8 @@ export const useStore = create<StoreState>((setState, getState) => ({
   setTrackFilter: (v) => setState({ trackFilter: v }),
   setHelpOpen: (v) => setState({ helpOpen: v }),
   setSetupPromptOpen: (v) => setState({ setupPromptOpen: v }),
+  setCacheCount: (n) => setState({ cacheCount: n }),
+  setRestoreItems: (v) => setState({ restoreItems: v }),
 
   select: (ids, additive) =>
     setState((s) => ({
