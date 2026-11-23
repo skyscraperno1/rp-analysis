@@ -101,7 +101,7 @@ export function Toolbar() {
         >
           <Upload size={16} strokeWidth={1.8} />
         </TipButton>
-        <TipButton tip="导出 JSON（保留原始字段，按编号排序，文件名带时间戳）" dir="bottom" className="btn primary" onClick={exportJson}>
+        <TipButton tip="导出 JSON（保留原始字段，按编号排序，文件名带时间戳）" dir="bottom" className="btn" onClick={exportJson}>
           <Download size={16} strokeWidth={1.8} />
         </TipButton>
         {/* 删掉记住的文件句柄，不动当前画面；只有真记住了才出现 */}
