@@ -2,8 +2,8 @@
  *  悬停 = 白；selected 只用于选中后的手柄/变换边框这类交互控件，
  *  不再用来给方框本身染色。方框只画边框、不填底色（中间放一个小十字） */
 export const BOX_COLORS = {
-  selected: '#ffb300',
-  hover: '#ffffff',
+  selected: "#ffb300",
+  hover: "#ffffff"
 } as const;
 
 /** 轨道色的 HSL 三段（不含 hsl() 包装），供描边 / 填充共用 */

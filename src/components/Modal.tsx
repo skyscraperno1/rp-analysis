@@ -1,5 +1,5 @@
-import { useEffect, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, type ReactNode } from "react";
+import { X } from "lucide-react";
 
 /** 全局弹窗：半透明遮罩 + 居中面板。
  *  Esc 关闭、点遮罩关闭；面板内部点击不透传到遮罩。
@@ -11,7 +11,7 @@ export function Modal({
   footer,
   width,
   closeOnMask = true,
-  mask = true,
+  mask = true
 }: {
   title: string;
   onClose: () => void;
@@ -28,27 +28,36 @@ export function Modal({
   /* Esc 关闭 */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.stopPropagation();
         onClose();
       }
     };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
 
   return (
     <div
-      className={`modal-mask${mask ? '' : ' no-mask'}`}
-      onMouseDown={(e) => {
+      className={`modal-mask${mask ? "" : " no-mask"}`}
+      onMouseDown={e => {
         // 只有点在遮罩本身上、且允许点遮罩关闭时才关
         if (closeOnMask && e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal" style={width ? { width } : undefined} onMouseDown={(e) => e.stopPropagation()}>
+      <div
+        className="modal"
+        style={width ? { width } : undefined}
+        onMouseDown={e => e.stopPropagation()}
+      >
         <div className="modal-head">
           <h3>{title}</h3>
-          <button className="modal-close" onClick={onClose} aria-label="关闭" title="关闭 (Esc)">
+          <button
+            className="modal-close"
+            onClick={onClose}
+            aria-label="关闭"
+            title="关闭 (Esc)"
+          >
             <X size={15} strokeWidth={2} />
           </button>
         </div>

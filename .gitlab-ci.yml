@@ -1,0 +1,31 @@
+stages:
+  - check
+
+variables:
+  GIT_DEPTH: "0"
+  GIT_STRATEGY: "fetch"
+  PNPM_VERSION: "9.15.9"
+
+# MR 合并前自动检查：固定 Node 镜像、锁文件校验、类型检查、零警告 Lint、领域算法校验与生产构建
+check:
+  stage: check
+  tags:
+    - cnc_gitrunner
+  only:
+    - merge_requests
+  script:
+    - |
+      set -eu
+      docker run --rm --user "$(id -u):$(id -g)" \
+        --env HOME=/tmp --env COREPACK_HOME=/tmp/corepack \
+        --env COREPACK_NPM_REGISTRY=https://registry.npmmirror.com \
+        --env COREPACK_ENABLE_DOWNLOAD_PROMPT=0 --env PNPM_VERSION \
+        --volume "$(pwd -P):/app" --workdir /app \
+        m.daocloud.io/docker.io/library/node:22.20.0-alpine sh -ec '
+          corepack prepare "pnpm@$PNPM_VERSION" --activate
+          corepack pnpm install --frozen-lockfile --store-dir /tmp/pnpm-store
+          corepack pnpm typecheck
+          corepack pnpm exec eslint --max-warnings 0 "{src,scripts}/**/*.{js,ts,tsx}"
+          corepack pnpm check:all
+          corepack pnpm build
+        '

@@ -1,22 +1,22 @@
-import { useEffect } from 'react';
-import { useStore } from './store/useStore';
-import { Toolbar } from './components/Toolbar';
-import { AnnotationStage } from './components/AnnotationStage';
-import { BoxList } from './components/BoxList';
-import { PropertiesPanel } from './components/PropertiesPanel';
-import { HelpCard } from './components/HelpCard';
-import { SortDialog } from './components/SortDialog';
-import { RecomputeTracksDialog } from './components/RecomputeTracksDialog';
-import { AppTooltip } from './components/Tooltip';
-import { StartPrompt } from './components/StartPrompt';
-import { useKeyboard } from './hooks/useKeyboard';
-import { restoreOnStart } from './lib/fileCache';
+import { useEffect } from "react";
+import { useStore } from "./store/useStore";
+import { Toolbar } from "./components/Toolbar";
+import { AnnotationStage } from "./components/AnnotationStage";
+import { BoxList } from "./components/BoxList";
+import { PropertiesPanel } from "./components/PropertiesPanel";
+import { HelpCard } from "./components/HelpCard";
+import { SortDialog } from "./components/SortDialog";
+import { RecomputeTracksDialog } from "./components/RecomputeTracksDialog";
+import { AppTooltip } from "./components/Tooltip";
+import { StartPrompt } from "./components/StartPrompt";
+import { useKeyboard } from "./hooks/useKeyboard";
+import { restoreOnStart } from "./lib/fileCache";
 
 export default function App() {
   useKeyboard();
-  const loading = useStore((s) => s.loading);
-  const error = useStore((s) => s.error);
-  const notice = useStore((s) => s.notice);
+  const loading = useStore(s => s.loading);
+  const error = useStore(s => s.error);
+  const notice = useStore(s => s.notice);
 
   /* 提示自动消失 */
   useEffect(() => {
@@ -51,7 +51,10 @@ export default function App() {
       <StartPrompt />
       {notice && <div className="toast">{notice}</div>}
       {error && (
-        <div className="toast error" onClick={() => useStore.getState().setError(null)}>
+        <div
+          className="toast error"
+          onClick={() => useStore.getState().setError(null)}
+        >
           {error}（点击关闭）
         </div>
       )}

@@ -7,7 +7,7 @@
    这两个成员运行时只存在于 Chromium，用 pickerSupported() 判断后再调用。 */
 
 interface FileSystemHandlePermissionDescriptor {
-  mode?: 'read' | 'readwrite';
+  mode?: "read" | "readwrite";
 }
 
 interface OpenFilePickerOptions {
@@ -17,10 +17,16 @@ interface OpenFilePickerOptions {
 }
 
 interface FileSystemHandle {
-  queryPermission(descriptor?: FileSystemHandlePermissionDescriptor): Promise<PermissionState>;
-  requestPermission(descriptor?: FileSystemHandlePermissionDescriptor): Promise<PermissionState>;
+  queryPermission(
+    descriptor?: FileSystemHandlePermissionDescriptor
+  ): Promise<PermissionState>;
+  requestPermission(
+    descriptor?: FileSystemHandlePermissionDescriptor
+  ): Promise<PermissionState>;
 }
 
 interface Window {
-  showOpenFilePicker?(options?: OpenFilePickerOptions): Promise<FileSystemFileHandle[]>;
+  showOpenFilePicker?(
+    options?: OpenFilePickerOptions
+  ): Promise<FileSystemFileHandle[]>;
 }

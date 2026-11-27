@@ -1,4 +1,4 @@
-import type { Box } from '../types';
+import type { Box } from "../types";
 
 export interface SortOptions {
   /** 行容差（像素）：点与行偏移量的 Y 距离在容差内即归入该行 */
@@ -38,7 +38,11 @@ interface Row {
 
 function toPoints(boxes: Box[]): Pt[] {
   return boxes
-    .map((b) => ({ id: b.id, x: (b.bbox[0] + b.bbox[2]) / 2, y: (b.bbox[1] + b.bbox[3]) / 2 }))
+    .map(b => ({
+      id: b.id,
+      x: (b.bbox[0] + b.bbox[2]) / 2,
+      y: (b.bbox[1] + b.bbox[3]) / 2
+    }))
     .sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
@@ -55,12 +59,12 @@ function clusterRows(pts: Pt[], tol: number): Row[] {
       rows.push({ sum: p.y, n: 1, items: [p] });
     }
   }
-  return rows.map((r) => ({ offset: r.sum / r.n, items: r.items }));
+  return rows.map(r => ({ offset: r.sum / r.n, items: r.items }));
 }
 
 /** 按给定的每行偏移量分配：点归入"偏移量最近且距离 ≤ 容差"的行；都不满足的各自成行 */
 function assignRows(pts: Pt[], offsets: number[], tol: number): Row[] {
-  const rows: Row[] = offsets.map((o) => ({ offset: o, items: [] }));
+  const rows: Row[] = offsets.map(o => ({ offset: o, items: [] }));
   const extra: Pt[] = [];
   for (const p of pts) {
     let best = -1;
@@ -85,17 +89,30 @@ function assignRows(pts: Pt[], offsets: number[], tol: number): Row[] {
  * （每行偏移量可不同，解决行中心不齐的问题）。
  * 容差单位为像素。
  */
-export function computeSort(boxes: Box[], opts: SortOptions, offsets?: number[]): SortResult {
-  const empty: SortResult = { order: new Map(), rowCount: 0, rowSizes: [], rows: [] };
+export function computeSort(
+  boxes: Box[],
+  opts: SortOptions,
+  offsets?: number[]
+): SortResult {
+  const empty: SortResult = {
+    order: new Map(),
+    rowCount: 0,
+    rowSizes: [],
+    rows: []
+  };
   if (boxes.length === 0) return empty;
   const tol = Math.max(2, opts.tolerance);
   const pts = toPoints(boxes);
 
   const explicit = Array.isArray(offsets) && offsets.length > 0;
-  const rows: Row[] = explicit ? assignRows(pts, offsets!, tol) : clusterRows(pts, tol);
+  const rows: Row[] = explicit
+    ? assignRows(pts, offsets!, tol)
+    : clusterRows(pts, tol);
 
   // 编号顺序：按行的偏移量升序（稳定排序）
-  const numOrder = rows.map((_, i) => i).sort((a, b) => rows[a].offset - rows[b].offset);
+  const numOrder = rows
+    .map((_, i) => i)
+    .sort((a, b) => rows[a].offset - rows[b].offset);
 
   const order = new Map<string, number>();
   const rowSizes: number[] = [];
@@ -112,6 +129,6 @@ export function computeSort(boxes: Box[], opts: SortOptions, offsets?: number[])
     order,
     rowCount: rowSizes.length,
     rowSizes,
-    rows: rows.map((r) => ({ offset: r.offset, size: r.items.length })),
+    rows: rows.map(r => ({ offset: r.offset, size: r.items.length }))
   };
 }

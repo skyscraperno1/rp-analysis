@@ -1,4 +1,4 @@
-import type { Box } from '../types';
+import type { Box } from "../types";
 
 /**
  * 重算 track_id。
@@ -63,11 +63,20 @@ interface Col {
 /** 中心 x；异常值退化成 0，保证排序是全序 */
 function toPoints(boxes: Box[]): Pt[] {
   return boxes
-    .map((b) => {
+    .map(b => {
       const cx = (b.bbox[0] + b.bbox[2]) / 2;
-      return { b, x: Number.isFinite(cx) ? cx : 0, tid: Number.isFinite(b.track_id) ? b.track_id : 0 };
+      return {
+        b,
+        x: Number.isFinite(cx) ? cx : 0,
+        tid: Number.isFinite(b.track_id) ? b.track_id : 0
+      };
     })
-    .sort((a, b) => a.x - b.x || a.tid - b.tid || (a.b.studId ?? Infinity) - (b.b.studId ?? Infinity));
+    .sort(
+      (a, b) =>
+        a.x - b.x ||
+        a.tid - b.tid ||
+        (a.b.studId ?? Infinity) - (b.b.studId ?? Infinity)
+    );
 }
 
 /** 顺序聚类：逐点扫描，与列的滑动均值比较，落在容差内归入该列 */
@@ -83,12 +92,12 @@ function clusterCols(pts: Pt[], tol: number): Col[] {
       cols.push({ sum: p.x, n: 1, items: [p] });
     }
   }
-  return cols.map((c) => ({ offset: c.sum / c.n, items: c.items }));
+  return cols.map(c => ({ offset: c.sum / c.n, items: c.items }));
 }
 
 /** 按给定的每列偏移量分配：点归入"偏移量最近且距离 ≤ 容差"的列；都不满足的各自成列 */
 function assignCols(pts: Pt[], offsets: number[], tol: number): Col[] {
-  const cols: Col[] = offsets.map((o) => ({ offset: o, items: [] }));
+  const cols: Col[] = offsets.map(o => ({ offset: o, items: [] }));
   const extra: Pt[] = [];
   for (const p of pts) {
     let best = -1;
@@ -121,17 +130,24 @@ function assignCols(pts: Pt[], offsets: number[], tol: number): Col[] {
  * 注意：在中间插入一列，其后所有列号都会 +1（从左到右连续编号的必然结果），
  * 所以 changed 可能远大于"真正动过"的点数。toast 里会报出来，且可 Ctrl+Z 撤销。
  */
-export function recomputeTracks(boxes: Box[], opts: RecomputeTracksOptions = {}): RecomputeTracksResult {
+export function recomputeTracks(
+  boxes: Box[],
+  opts: RecomputeTracksOptions = {}
+): RecomputeTracksResult {
   const tol = Math.max(1, opts.tolerance ?? DEFAULT_TRACK_TOLERANCE);
   const maxMoves = Math.max(0, opts.maxMoves ?? 8);
 
   const pts = toPoints(boxes);
 
   const explicit = Array.isArray(opts.offsets) && opts.offsets.length > 0;
-  const cols: Col[] = explicit ? assignCols(pts, opts.offsets!, tol) : clusterCols(pts, tol);
+  const cols: Col[] = explicit
+    ? assignCols(pts, opts.offsets!, tol)
+    : clusterCols(pts, tol);
 
   // 编号顺序：按列的偏移量升序（稳定排序；用户编辑偏移量后顺序可能变）
-  const numOrder = cols.map((_, i) => i).sort((a, b) => cols[a].offset - cols[b].offset);
+  const numOrder = cols
+    .map((_, i) => i)
+    .sort((a, b) => cols[a].offset - cols[b].offset);
 
   const newId = new Map<string, number>();
   const colIds = cols.map(() => 0);
@@ -144,11 +160,12 @@ export function recomputeTracks(boxes: Box[], opts: RecomputeTracksOptions = {})
 
   const moves: TrackMove[] = [];
   let changed = 0;
-  const out = boxes.map((b) => {
+  const out = boxes.map(b => {
     const to = newId.get(b.id) ?? 0;
     if (to !== b.track_id) {
       changed++;
-      if (moves.length < maxMoves) moves.push({ studId: b.studId, from: b.track_id, to });
+      if (moves.length < maxMoves)
+        moves.push({ studId: b.studId, from: b.track_id, to });
     }
     return { ...b, track_id: to, hasTrack: true };
   });
@@ -157,8 +174,12 @@ export function recomputeTracks(boxes: Box[], opts: RecomputeTracksOptions = {})
     boxes: out,
     trackCount: cols.length,
     sizes,
-    cols: cols.map((c, i) => ({ offset: c.offset, size: c.items.length, trackId: colIds[i] })),
+    cols: cols.map((c, i) => ({
+      offset: c.offset,
+      size: c.items.length,
+      trackId: colIds[i]
+    })),
     changed,
-    moves,
+    moves
   };
 }

@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
-import { useStore } from '../store/useStore';
-import type { Box } from '../types';
-import { trackColor } from '../lib/colors';
+import { useEffect, useState } from "react";
+import { useStore } from "../store/useStore";
+import type { Box } from "../types";
+import { trackColor } from "../lib/colors";
 
 /** Figma 风格的轴输入框：X/Y 前缀内嵌，整体是一个控件 */
 function AxisInput({
   axis,
   tip,
   value,
-  onCommit,
+  onCommit
 }: {
-  axis: 'X' | 'Y';
+  axis: "X" | "Y";
   tip: string;
   value: number;
   onCommit: (v: number) => void;
@@ -21,7 +21,7 @@ function AxisInput({
   }, [value]);
   const commit = () => {
     const v = Number(txt);
-    if (Number.isFinite(v) && txt.trim() !== '') onCommit(v);
+    if (Number.isFinite(v) && txt.trim() !== "") onCommit(v);
     else setTxt(String(Math.round(value * 10) / 10));
   };
   return (
@@ -29,10 +29,10 @@ function AxisInput({
       <span className="axis">{axis}</span>
       <input
         value={txt}
-        onChange={(e) => setTxt(e.target.value)}
+        onChange={e => setTxt(e.target.value)}
         onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') commit();
+        onKeyDown={e => {
+          if (e.key === "Enter") commit();
         }}
       />
     </label>
@@ -43,7 +43,7 @@ function AxisInput({
  *  前面的色块就是该轨道在画布上的颜色，改号即变色 */
 function TrackInput({
   value,
-  onCommit,
+  onCommit
 }: {
   value: number;
   onCommit: (v: number) => void;
@@ -54,18 +54,22 @@ function TrackInput({
   }, [value]);
   const commit = () => {
     const v = Number(txt);
-    if (Number.isFinite(v) && txt.trim() !== '' && v >= 0) onCommit(Math.floor(v));
+    if (Number.isFinite(v) && txt.trim() !== "" && v >= 0)
+      onCommit(Math.floor(v));
     else setTxt(String(value));
   };
   return (
-    <label className="axis-input track-input" title="轨道号（竖排的列号），回车生效">
+    <label
+      className="axis-input track-input"
+      title="轨道号（竖排的列号），回车生效"
+    >
       <i className="swatch" style={{ background: trackColor(value) }} />
       <input
         value={txt}
-        onChange={(e) => setTxt(e.target.value)}
+        onChange={e => setTxt(e.target.value)}
         onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') commit();
+        onKeyDown={e => {
+          if (e.key === "Enter") commit();
         }}
       />
     </label>
@@ -73,13 +77,18 @@ function TrackInput({
 }
 
 function BoxProps({ box }: { box: Box }) {
-  const updateBox = useStore((s) => s.updateBox);
-  const setTrackId = useStore((s) => s.setTrackId);
-  const focusBox = useStore((s) => s.focusBox);
-  const deleteSelected = useStore((s) => s.deleteSelected);
+  const updateBox = useStore(s => s.updateBox);
+  const setTrackId = useStore(s => s.setTrackId);
+  const focusBox = useStore(s => s.focusBox);
+  const deleteSelected = useStore(s => s.deleteSelected);
 
   const setCorner = (i: 0 | 1 | 2 | 3, v: number) => {
-    const bb: [number, number, number, number] = [box.bbox[0], box.bbox[1], box.bbox[2], box.bbox[3]];
+    const bb: [number, number, number, number] = [
+      box.bbox[0],
+      box.bbox[1],
+      box.bbox[2],
+      box.bbox[3]
+    ];
     bb[i] = v;
     if (bb[2] - bb[0] < 4) {
       if (i === 0) bb[0] = bb[2] - 4;
@@ -99,22 +108,43 @@ function BoxProps({ box }: { box: Box }) {
     <div className="props">
       <div className="section-label">左上角</div>
       <div className="axis-row">
-        <AxisInput axis="X" tip="左上角 X" value={box.bbox[0]} onCommit={(v) => setCorner(0, v)} />
-        <AxisInput axis="Y" tip="左上角 Y" value={box.bbox[1]} onCommit={(v) => setCorner(1, v)} />
+        <AxisInput
+          axis="X"
+          tip="左上角 X"
+          value={box.bbox[0]}
+          onCommit={v => setCorner(0, v)}
+        />
+        <AxisInput
+          axis="Y"
+          tip="左上角 Y"
+          value={box.bbox[1]}
+          onCommit={v => setCorner(1, v)}
+        />
       </div>
       <div className="section-label">右下角</div>
       <div className="axis-row">
-        <AxisInput axis="X" tip="右下角 X" value={box.bbox[2]} onCommit={(v) => setCorner(2, v)} />
-        <AxisInput axis="Y" tip="右下角 Y" value={box.bbox[3]} onCommit={(v) => setCorner(3, v)} />
+        <AxisInput
+          axis="X"
+          tip="右下角 X"
+          value={box.bbox[2]}
+          onCommit={v => setCorner(2, v)}
+        />
+        <AxisInput
+          axis="Y"
+          tip="右下角 Y"
+          value={box.bbox[3]}
+          onCommit={v => setCorner(3, v)}
+        />
       </div>
 
       <div className="section-label">轨道</div>
-      <TrackInput value={box.track_id} onCommit={(v) => setTrackId(box.id, v)} />
+      <TrackInput value={box.track_id} onCommit={v => setTrackId(box.id, v)} />
 
       <div className="kv">
         <span>宽 × 高</span>
         <span>
-          {(box.bbox[2] - box.bbox[0]).toFixed(1)} × {(box.bbox[3] - box.bbox[1]).toFixed(1)}
+          {(box.bbox[2] - box.bbox[0]).toFixed(1)} ×{" "}
+          {(box.bbox[3] - box.bbox[1]).toFixed(1)}
         </span>
       </div>
       <div className="kv">
@@ -150,18 +180,20 @@ function BoxProps({ box }: { box: Box }) {
 }
 
 export function PropertiesPanel() {
-  const boxes = useStore((s) => s.boxes);
-  const selected = useStore((s) => s.selected);
-  const select = useStore((s) => s.select);
-  const setSelectedTrackId = useStore((s) => s.setSelectedTrackId);
-  const deleteSelected = useStore((s) => s.deleteSelected);
-  const selBoxes = boxes.filter((b) => selected.includes(b.id));
+  const boxes = useStore(s => s.boxes);
+  const selected = useStore(s => s.selected);
+  const select = useStore(s => s.select);
+  const setSelectedTrackId = useStore(s => s.setSelectedTrackId);
+  const deleteSelected = useStore(s => s.deleteSelected);
+  const selBoxes = boxes.filter(b => selected.includes(b.id));
 
   return (
     <div className="panel props-panel">
       <div className="panel-head">
         <span className="title">属性</span>
-        {selBoxes.length > 0 && <span className="count">{selBoxes.length}</span>}
+        {selBoxes.length > 0 && (
+          <span className="count">{selBoxes.length}</span>
+        )}
       </div>
       {selBoxes.length === 1 && <BoxProps box={selBoxes[0]} />}
       {selBoxes.length > 1 && (
@@ -171,7 +203,10 @@ export function PropertiesPanel() {
             <span>{selBoxes.length} 个方框</span>
           </div>
           <div className="section-label">统一为轨道</div>
-          <TrackInput value={selBoxes[0].track_id} onCommit={setSelectedTrackId} />
+          <TrackInput
+            value={selBoxes[0].track_id}
+            onCommit={setSelectedTrackId}
+          />
           <div className="hint">可整体拖动；改大小请单选</div>
           <div className="props-actions">
             <button className="btn" onClick={() => select([])}>

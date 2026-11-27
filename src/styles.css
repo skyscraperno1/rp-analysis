@@ -30,7 +30,12 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font: 13px/1.45 system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  font:
+    13px/1.45 system-ui,
+    -apple-system,
+    "Segoe UI",
+    "Microsoft YaHei",
+    sans-serif;
   overflow: hidden;
 }
 
@@ -562,10 +567,8 @@ body {
   /* 多层叠加的阴影：最内层是接触阴影（最实），越往外越淡，
      模拟物体浮在画布上的环境光遮蔽，比单层 box-shadow 有物理感 */
   --help-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.32),
-    0 1px 2px rgba(0, 0, 0, 0.42),
-    0 3px 6px rgba(0, 0, 0, 0.32),
-    0 8px 16px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(0, 0, 0, 0.32), 0 1px 2px rgba(0, 0, 0, 0.42),
+    0 3px 6px rgba(0, 0, 0, 0.32), 0 8px 16px rgba(0, 0, 0, 0.24),
     0 16px 32px rgba(0, 0, 0, 0.18);
 }
 
@@ -759,7 +762,9 @@ body {
   background: transparent;
   color: var(--dim);
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
 }
 
 .dock-action:hover:not(:disabled) {
@@ -1141,7 +1146,7 @@ body {
   color: var(--dim);
 }
 
-.modal input[type='range'] {
+.modal input[type="range"] {
   flex: 1;
   accent-color: var(--accent);
 }
@@ -1285,7 +1290,9 @@ body {
   line-height: 1;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
 }
 
 .legend-track:hover {
@@ -1301,7 +1308,6 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-
 .legend i {
   width: 9px;
   height: 9px;
@@ -1309,7 +1315,6 @@ body {
   display: inline-block;
   flex: none;
 }
-
 
 .actions {
   display: flex;

@@ -1,0 +1,18 @@
+#!/bin/sh
+. "$(dirname "$0")/common.sh"
+
+[ -n "$CI" ] && exit 0
+
+PATH="/usr/local/bin:$PATH"
+
+# 推送前执行全量类型检查与核心领域校验（补齐 lint-staged 查不到跨文件类型问题的盲区）。
+# 如工作区有未提交 WIP 需紧急跳过：git push --no-verify
+echo "pre-push: typecheck & domain checks 中（跳过：git push --no-verify）..."
+if ! pnpm typecheck; then
+  echo "pre-push: typecheck 未通过，推送已中止。"
+  exit 1
+fi
+if ! pnpm check:all; then
+  echo "pre-push: check:all 未通过，推送已中止。"
+  exit 1
+fi

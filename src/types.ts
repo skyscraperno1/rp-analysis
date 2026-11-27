@@ -20,7 +20,7 @@ export interface Detection {
 }
 
 /** 编辑器内部的点位对象 = Detection + id + 编号 */
-export interface Box extends Omit<Detection, 'id'> {
+export interface Box extends Omit<Detection, "id"> {
   id: string;
   /** 文件里的 stud 编号；旧格式没有 id 时为 null，不凭空造号 */
   studId: number | null;
@@ -37,15 +37,15 @@ export interface PredJson {
   studs: Detection[];
 }
 
-export type ToolMode = 'select' | 'draw' | 'pan';
+export type ToolMode = "select" | "draw" | "pan";
 /** 画布标签显示：开 / 关 */
-export type LabelMode = 'on' | 'off';
+export type LabelMode = "on" | "off";
 
 /** 启动恢复时引导弹窗里列出的文件条目 */
 export interface RestoreItem {
-  kind: 'image' | 'json';
+  kind: "image" | "json";
   /** 文件名，仅用于显示 */
   name: string;
   /** loading 正在自动加载；need 需要用户点一下「恢复」；done 已加载完 */
-  status: 'loading' | 'need' | 'done';
+  status: "loading" | "need" | "done";
 }

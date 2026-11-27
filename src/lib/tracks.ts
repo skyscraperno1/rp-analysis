@@ -1,4 +1,4 @@
-import type { Box } from '../types';
+import type { Box } from "../types";
 
 /**
  * 猜一个新框属于哪条轨道。
@@ -7,7 +7,10 @@ import type { Box } from '../types';
  * 只有当中心离最近的轴线还超过一个框宽（明显不在任何一列上）时，才新开一条轨道，
  * 免得和已有列撞色。
  */
-export function guessTrackId(boxes: Box[], bbox: [number, number, number, number]): number {
+export function guessTrackId(
+  boxes: Box[],
+  bbox: [number, number, number, number]
+): number {
   if (boxes.length === 0) return 0;
   const cx = (bbox[0] + bbox[2]) / 2;
 
